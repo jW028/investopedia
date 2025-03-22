@@ -27,14 +27,31 @@ INCLUDE IRVINE32.INC
 
     userChoice BYTE ?
 
-    stk1 BYTE "Skibidi", 0
-    stk2 BYTE "Linganguliguli", 0
-    stk3 BYTE "Sigma", 0
+    ;Add investment data
+    investment BYTE "1. Skibidi", 0Dh, 0Ah,
+               "2. Linganguliguli", 0Dh, 0Ah,
+               "3. Sigma", 0Dh, 0Ah,
+               "Enter the choice of your investment: ", 0
 
-    investArray DWORD OFFSET stk1
-                DWORD OFFSET stk2
-                DWORD OFFSET stk3
-    numString DWORD 3
+    investChoice BYTE ?
+
+    invest1 BYTE 0Dh, 0Ah, "Investment: Skibidi", 0Dh, 0Ah
+            BYTE "Price per unit: $50", 0Dh, 0Ah
+            BYTE "Risk Level: High", 0Dh, 0Ah
+            BYTE "Description: High risk, high return, suitable for long-term investors.", 0Dh, 0Ah, 0
+
+    invest2 BYTE 0Dh, 0Ah, "Investment: Linganguliguli", 0Dh, 0Ah
+            BYTE "Price per unit: $100", 0Dh, 0Ah
+            BYTE "Risk Level: Low", 0Dh, 0Ah
+            BYTE "Description: Lower risk, steady income, ideal for conservative investors.", 0Dh, 0Ah, 0
+
+    invest3 BYTE 0Dh, 0Ah, "Investment: Sigma", 0Dh, 0Ah
+            BYTE "Price per unit: $200,000", 0Dh, 0Ah
+            BYTE "Risk Level: Medium", 0Dh, 0Ah
+            BYTE "Description: Physical asset, generates rental income, hedge against inflation.", 0Dh, 0Ah, 0
+
+
+ 
 
 
 .code
@@ -99,8 +116,8 @@ menu_loop:
     mov edx, OFFSET menuText
     call WriteString
 
-    mov edx, OFFSET userChoice
-    call ReadString
+    call ReadChar
+    mov userChoice, al
     call Crlf
 
     cmp userChoice, '1'
@@ -115,8 +132,6 @@ menu_loop:
     jmp menu_loop
 
 add_investment:
-    mov edx, OFFSET aiPage
-    call WriteString
     call AddInvestment
     call exit_menu
 
@@ -131,21 +146,45 @@ exit_menu:
 Menu ENDP
 
 AddInvestment PROC 
-    mov edx, OFFSET stk1
-    mov esi, OFFSET investArray
-    mov ecx, numString
-
-print_loop:
-    mov eax, [esi]
-    mov edx, eax
+    call Clrscr
+    mov edx, OFFSET aiPage
     call WriteString
+
+investMenu:
+    mov edx, OFFSET investment
+    call WriteString
+
+    call ReadChar
+    mov investChoice, al
     call Crlf
 
-    add esi, 4
-    loop print_loop
-    call ExitProcess
+    cmp investChoice, '1'
+    je displayInvest1
+    cmp investChoice, '2'
+    je displayInvest2
+    cmp investChoice, '3'
+    je displayInvest3
 
-    ret
+    mov edx, OFFSET invalidMsg
+    call WriteString
+    jmp investMenu
+
+displayInvest1:
+    mov edx,OFFSET invest1
+    call WriteString
+    jmp investMenu
+
+displayInvest2:
+    mov edx, OFFSET invest2
+    call WriteString
+    jmp investMenu
+
+displayInvest3:
+    mov edx, OFFSET invest3
+    call WriteString
+    jmp investMenu
+
+
 AddInvestment ENDP
 
 CompareStrings PROC
