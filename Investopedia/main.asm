@@ -35,6 +35,7 @@ INCLUDE IRVINE32.INC
                "Enter the choice of your investment: ", 0
 
     investChoice DWORD ?
+    listingChoice DWORD ?
 
     invest1 BYTE 0Dh, 0Ah, "Investment: Stocks", 0Dh, 0Ah
             BYTE "Risk Level: High", 0Dh, 0Ah
@@ -49,10 +50,48 @@ INCLUDE IRVINE32.INC
     invest3 BYTE 0Dh, 0Ah, "Investment: Index Funds", 0Dh, 0Ah
             BYTE "Risk Level: Medium", 0Dh, 0Ah
             BYTE "Description: Moderate risk, good diversification. Suitable for long-term investors (5+ years).", 0Dh, 0Ah, 0
-            BYTE "Price per unit: $200,000", 0Dh, 0Ah
+            BYTE "Recommended Starting Capital: $1,000", 0Dh, 0Ah
+
+    ; Investment listings
+    stocksListTitle BYTE 0Dh, 0Ah, "Available Stocks:", 0Dh, 0Ah, 0
+    stocksList BYTE "1. Apple (AAPL)", 0Dh, 0Ah
+               BYTE "2. Tesla (TSLA)", 0Dh, 0Ah
+               BYTE "3. Microsoft (MSFT)", 0Dh, 0Ah
+               BYTE "4. NVIDIA (NVDA)", 0Dh, 0Ah
+               BYTE "5. Amazon (AMZN)", 0Dh, 0Ah
+               BYTE "6. Meta (META)", 0Dh, 0Ah
+               BYTE "7. Coca-Cola (KO)", 0Dh, 0Ah
+               BYTE "8. Berkshire Hathaway (BRK.A)", 0Dh, 0Ah, 0
+
+    bondsListTitle BYTE 0Dh, 0Ah, "Available Bonds:", 0Dh, 0Ah, 0
+    bondsList BYTE "1. U.S Treasury Bonds", 0Dh, 0Ah
+              BYTE "2. Municipal Bonds", 0Dh, 0Ah
+              BYTE "3. Corporate Bonds", 0Dh, 0Ah
+              BYTE "4. High-Yield Bonds", 0Dh, 0Ah
+              BYTE "5. Government Savings Bonds", 0Dh, 0Ah
+              BYTE "6. Inflation-Protected Bonds", 0Dh, 0Ah
+              BYTE "7. Green Bonds", 0Dh, 0Ah
+              BYTE "8. Convertible Bonds", 0Dh, 0Ah, 0
+
+    indexListTitle BYTE 0Dh, 0Ah, "Available Index Funds:", 0Dh, 0Ah, 0
+    indexList BYTE "1. S&P 500 Index Fund (SPY, VOO, IVV)", 0Dh, 0Ah
+              BYTE "2. Total Stock Market Index (VTI, FSKAX)", 0Dh, 0Ah
+              BYTE "3. Nasdaq-100 Index Fund (QQQ)", 0Dh, 0Ah
+              BYTE "4. Russell 2000 Index Fund (IWM, VTWO)", 0Dh, 0Ah
+              BYTE "5. International Index Fund (VXUS, IXUS)", 0Dh, 0Ah
+              BYTE "6. Emerging Markets Index Fund (VWO, EEM)", 0Dh, 0Ah
+              BYTE "7. Dividend Growth Index Fund (VIG, SCHD)", 0Dh, 0Ah
+              BYTE "8. Bond Index Fund (AGG, BND)", 0Dh, 0Ah, 0
+
 
     promptPurchase BYTE "Do you want to see its listings? (Y to confirm): ", 0
     userConfirm BYTE ?
+
+    ; Selected item info
+    selectedItemMsg BYTE "You selected: ", 0
+    stockPrices DWORD 145, 210, 340, 820, 175, 500, 60, 525700
+    bondPrices DWORD 1000, 5000, 1000, 800, 100, 1000, 1000, 1000
+    indexPrices DWORD 420, 260, 380, 170, 70, 45, 80, 80
 
     ;Purchase
     promptQuantity BYTE "Enter quantity (-999 to go back): ", 0
@@ -197,15 +236,74 @@ displayInvest1:
     call WriteString
     mov eax, price1
     call Purchase
+    
+    cmp userConfirm, 'Y'
+    je display_stocks_list
+    cmp userConfirm, 'y'
+    je display_stocks_list
+
     call Clrscr
     jmp investMenu
+
+display_stocks_list:
+    mov edx, OFFSET stocksListTitle
+    call WriteString
+    mov edx, OFFSET stocksList
+    call WriteString
+
+    call ReadInt
+    mov listingChoice, eax
+    call Crlf
+
+    cmp listingChoice, 9
+    je investMenu
+
+    cmp listingChoice, 1
+    jl invalid_stock_choice
+    cmp listingChoice, 8
+    jg invalid_stock_choice
+
+    mov edx, OFFSET selectedItemMsg
+    call WriteString
+
+    mov eax, listingChoice
+    dec eax 
+    imul eax, 4
+    mov ebx, stockPrices[eax]
+    mov unitPrice, ebx
+
+    call purchase_process
+    call Clrscr
+    jmp investMenu
+
+invalid_stock_choice:
+    mov edx, OFFSET invalidMsg
+    call WriteString
+    jmp display_stocks_list
 
 displayInvest2:
     mov edx, OFFSET invest2
     call WriteString
     mov eax, price2
     call Purchase
+
+    cmp userConfirm, 'Y'
+    je display_bonds_list
+    cmp userConfirm, 'y'
+    je display_bonds_list
+
     call Clrscr
+    jmp investMenu
+
+display_bonds_list:
+    mov edx, OFFSET bondsListTitle
+    call WriteString
+    mov edx, OFFSET bondsList
+    call WriteString
+    mov edx, OFFSET enterMsg
+    call WriteString
+    call ReadChar
+    call Crlf
     jmp investMenu
 
 displayInvest3:
@@ -213,11 +311,28 @@ displayInvest3:
     call WriteString
     mov eax, price3
     call Purchase
+
+    cmp userConfirm, 'Y'
+    je display_index_list
+    cmp userConfirm, 'y'
+    je display_index_list
+
     call Clrscr
     jmp investMenu
 
+display_index_list:
+    mov edx, OFFSET indexListTitle
+    call WriteString
+    mov edx, OFFSET indexList
+    call WriteString
+    mov edx, OFFSET enterMsg
+    call WriteString
+    call ReadChar
+    call Crlf
+    jmp investMenu
 
 AddInvestment ENDP
+
 
 Purchase PROC
     ;call Crlf
@@ -229,31 +344,29 @@ Purchase PROC
     mov userConfirm, al
     call Crlf
 
-    cmp userConfirm, 'Y'
-    je purchase_process
-    cmp userConfirm, 'y'
-    je purchase_process
+    ;cmp userConfirm, 'Y'
+    ;je purchase_process
+    ;cmp userConfirm, 'y'
+    ;je purchase_process
     
     ret
 
-purchase_process:
+
+Purchase ENDP
+
+purchase_process PROC
     call Crlf
     mov edx, OFFSET promptQuantity
     call WriteString
-
-    ; Save the unit price in ebx
-    mov ebx, unitPrice
-
+    
     call ReadInt
 
     cmp eax, -999
-    je return
-
+    je purchase_return
     ; Save quantity in ecx
     mov ecx, eax
-
     ; Calculate total price
-    mov eax, ebx
+    mov eax, unitPrice
     mul ecx
 
     mov totalPrice, eax
@@ -270,7 +383,6 @@ purchase_process:
     mov [edi + ecx * 4], eax
     inc purchaseCount
 
-
     mov edx, OFFSET purchaseConfirm
     call WriteString
     call Crlf
@@ -280,11 +392,10 @@ purchase_process:
     call ReadChar
     call Crlf
 
-return:
+
+purchase_return:
     ret
-
-Purchase ENDP
-
+purchase_process ENDP
 
 
 
