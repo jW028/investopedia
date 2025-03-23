@@ -31,6 +31,7 @@ INCLUDE IRVINE32.INC
     investment BYTE "1. Skibidi", 0Dh, 0Ah,
                "2. Linganguliguli", 0Dh, 0Ah,
                "3. Sigma", 0Dh, 0Ah,
+               "4. Back", 0Dh, 0Ah,
                "Enter the choice of your investment: ", 0
 
     investChoice BYTE ?
@@ -50,7 +51,26 @@ INCLUDE IRVINE32.INC
             BYTE "Risk Level: Medium", 0Dh, 0Ah
             BYTE "Description: Physical asset, generates rental income, hedge against inflation.", 0Dh, 0Ah, 0
 
+    promptPurchase BYTE "Do you want to purchase? (Y to confirm): ", 0
+    userConfirm BYTE ?
 
+    ;Purchase
+    promptQuantity BYTE "Enter quantity (-999 to go back): ", 0
+    purchaseConfirm BYTE 0Dh, 0Ah, "Purchase successful!", 0Dh, 0Ah, 0
+    totalMsg BYTE "Total cost: $", 0
+
+    price1 DWORD 50
+    price2 DWORD 100
+    price3 DWORD 200000
+
+    quantity DWORD ?  
+    totalPrice DWORD ?
+
+    ;Purchase history
+    purchaseHistory DWORD 10 DUP(0)
+    purchaseCount DWORD 0
+    historyMsg BYTE "Purchase History: ", 0Dh, 0Ah, 0
+    
  
 
 
@@ -164,6 +184,8 @@ investMenu:
     je displayInvest2
     cmp investChoice, '3'
     je displayInvest3
+    cmp investChoice, '4'
+    call Menu
 
     mov edx, OFFSET invalidMsg
     call WriteString
@@ -172,20 +194,91 @@ investMenu:
 displayInvest1:
     mov edx,OFFSET invest1
     call WriteString
+    mov eax, price1
+    call Purchase
+    call Clrscr
     jmp investMenu
 
 displayInvest2:
     mov edx, OFFSET invest2
     call WriteString
+    mov eax, price2
+    call Purchase
+    call Clrscr
     jmp investMenu
 
 displayInvest3:
     mov edx, OFFSET invest3
     call WriteString
+    mov eax, price3
+    call Purchase
+    call Clrscr
     jmp investMenu
 
 
 AddInvestment ENDP
+
+Purchase PROC
+    ;call Crlf
+
+    ;mov edx, OFFSET promptPurchase
+    ;call WriteString
+    ;call ReadChar
+    ;mov userConfirm, al
+
+    ;cmp userConfirm, 'Y'
+    ;je purchase_process
+    
+    ;ret
+
+purchase_process:
+    call Crlf
+    mov edx, OFFSET promptQuantity
+    call WriteString
+
+    mov ebx, eax
+
+    call ReadInt
+
+    cmp eax, -999
+    je return
+
+    mov quantity, eax
+
+
+    mul ebx
+    mov totalPrice, eax
+
+    mov edx, OFFSET totalMsg
+    call WriteString
+
+    mov eax, totalPrice
+    call WriteDec
+    call Crlf
+
+    mov ecx, purchaseCount
+    mov edi, OFFSET purchaseHistory
+    mov [edi + ecx * 4], eax
+    inc purchaseCount
+
+
+    mov edx, OFFSET purchaseConfirm
+    call WriteString
+    call Crlf
+
+    mov edx, OFFSET enterMsg
+    call WriteString
+    call ReadChar
+    call Crlf
+
+return:
+    ret
+
+Purchase ENDP
+
+
+
+
 
 CompareStrings PROC
     push ecx  ; Save registers
