@@ -25,7 +25,7 @@ INCLUDE IRVINE32.INC
     calPage BYTE "You are in Calculator Page", 0Dh, 0Ah, 0
     invalidMsg BYTE "Invalid choice. Try again.", 0Dh, 0Ah, 0
 
-    userChoice BYTE ?
+    userChoice DWORD ?
 
     ;Add investment data
     investment BYTE "1. Skibidi", 0Dh, 0Ah,
@@ -34,7 +34,7 @@ INCLUDE IRVINE32.INC
                "4. Back", 0Dh, 0Ah,
                "Enter the choice of your investment: ", 0
 
-    investChoice BYTE ?
+    investChoice DWORD ?
 
     invest1 BYTE 0Dh, 0Ah, "Investment: Skibidi", 0Dh, 0Ah
             BYTE "Price per unit: $50", 0Dh, 0Ah
@@ -62,6 +62,8 @@ INCLUDE IRVINE32.INC
     price1 DWORD 50
     price2 DWORD 100
     price3 DWORD 200000
+
+    unitPrice DWORD ?
 
     quantity DWORD ?  
     totalPrice DWORD ?
@@ -97,7 +99,6 @@ login_attempt:
     call WriteString
 
     mov edx, OFFSET inputPassword
-    mov eax, 20  
     call ReadString
 
     mov esi, OFFSET username
@@ -136,15 +137,15 @@ menu_loop:
     mov edx, OFFSET menuText
     call WriteString
 
-    call ReadChar
-    mov userChoice, al
+    call ReadInt
+    mov userChoice, eax
     call Crlf
 
-    cmp userChoice, '1'
+    cmp userChoice, 1
     je add_investment
-    cmp userChoice, '2'
+    cmp userChoice, 2
     je calculator
-    cmp userChoice, '3'
+    cmp userChoice, 3
     je exit_menu
 
     mov edx, OFFSET invalidMsg
@@ -174,17 +175,17 @@ investMenu:
     mov edx, OFFSET investment
     call WriteString
 
-    call ReadChar
-    mov investChoice, al
+    call ReadInt
+    mov investChoice, eax
     call Crlf
 
-    cmp investChoice, '1'
+    cmp investChoice, 1
     je displayInvest1
-    cmp investChoice, '2'
+    cmp investChoice, 2
     je displayInvest2
-    cmp investChoice, '3'
+    cmp investChoice, 3
     je displayInvest3
-    cmp investChoice, '4'
+    cmp investChoice, 4
     call Menu
 
     mov edx, OFFSET invalidMsg
@@ -220,33 +221,41 @@ AddInvestment ENDP
 
 Purchase PROC
     ;call Crlf
+    mov unitPrice, eax
 
-    ;mov edx, OFFSET promptPurchase
-    ;call WriteString
-    ;call ReadChar
-    ;mov userConfirm, al
+    mov edx, OFFSET promptPurchase
+    call WriteString
+    call ReadCharWithEcho
+    mov userConfirm, al
+    call Crlf
 
-    ;cmp userConfirm, 'Y'
-    ;je purchase_process
+    cmp userConfirm, 'Y'
+    je purchase_process
+    cmp userConfirm, 'y'
+    je purchase_process
     
-    ;ret
+    ret
 
 purchase_process:
     call Crlf
     mov edx, OFFSET promptQuantity
     call WriteString
 
-    mov ebx, eax
+    ; Save the unit price in ebx
+    mov ebx, unitPrice
 
     call ReadInt
 
     cmp eax, -999
     je return
 
-    mov quantity, eax
+    ; Save quantity in ecx
+    mov ecx, eax
 
+    ; Calculate total price
+    mov eax, ebx
+    mul ecx
 
-    mul ebx
     mov totalPrice, eax
 
     mov edx, OFFSET totalMsg
@@ -275,7 +284,6 @@ return:
     ret
 
 Purchase ENDP
-
 
 
 
@@ -311,5 +319,14 @@ compare_end:
     pop ecx
     ret
 CompareStrings ENDP
+
+ReadCharWithEcho PROC
+    call ReadChar
+
+    mov bl, al     ; Save the character in bl
+    call WriteChar ; Display the character
+
+    ret 		   ; Return
+ReadCharWithEcho ENDP
 
 END main
