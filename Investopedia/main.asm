@@ -28,30 +28,30 @@ INCLUDE IRVINE32.INC
     userChoice DWORD ?
 
     ;Add investment data
-    investment BYTE "1. Skibidi", 0Dh, 0Ah,
-               "2. Linganguliguli", 0Dh, 0Ah,
-               "3. Sigma", 0Dh, 0Ah,
+    investment BYTE "1. Stocks / Equities", 0Dh, 0Ah,
+               "2. Bonds", 0Dh, 0Ah,
+               "3. Index Funds", 0Dh, 0Ah,
                "4. Back", 0Dh, 0Ah,
                "Enter the choice of your investment: ", 0
 
     investChoice DWORD ?
 
-    invest1 BYTE 0Dh, 0Ah, "Investment: Skibidi", 0Dh, 0Ah
-            BYTE "Price per unit: $50", 0Dh, 0Ah
+    invest1 BYTE 0Dh, 0Ah, "Investment: Stocks", 0Dh, 0Ah
             BYTE "Risk Level: High", 0Dh, 0Ah
-            BYTE "Description: High risk, high return, suitable for long-term investors.", 0Dh, 0Ah, 0
+            BYTE "Description: High risk, high return. Suitable for long-term investors (5+ years).", 0Dh, 0Ah, 0
+            BYTE "Recommended Starting Capital: $1,000", 0Dh, 0Ah
 
-    invest2 BYTE 0Dh, 0Ah, "Investment: Linganguliguli", 0Dh, 0Ah
-            BYTE "Price per unit: $100", 0Dh, 0Ah
-            BYTE "Risk Level: Low", 0Dh, 0Ah
-            BYTE "Description: Lower risk, steady income, ideal for conservative investors.", 0Dh, 0Ah, 0
+    invest2 BYTE 0Dh, 0Ah, "Investment: Bonds", 0Dh, 0Ah
+            BYTE "Risk Level: Medium - Low", 0Dh, 0Ah
+            BYTE "Description: Lower risk, moderate returns. Suitable for medium to long-term investors (3+ years).", 0Dh, 0Ah, 0
+            BYTE "Recommended Starting Capital: $500", 0Dh, 0Ah
 
-    invest3 BYTE 0Dh, 0Ah, "Investment: Sigma", 0Dh, 0Ah
-            BYTE "Price per unit: $200,000", 0Dh, 0Ah
+    invest3 BYTE 0Dh, 0Ah, "Investment: Index Funds", 0Dh, 0Ah
             BYTE "Risk Level: Medium", 0Dh, 0Ah
-            BYTE "Description: Physical asset, generates rental income, hedge against inflation.", 0Dh, 0Ah, 0
+            BYTE "Description: Moderate risk, good diversification. Suitable for long-term investors (5+ years).", 0Dh, 0Ah, 0
+            BYTE "Price per unit: $200,000", 0Dh, 0Ah
 
-    promptPurchase BYTE "Do you want to purchase? (Y to confirm): ", 0
+    promptPurchase BYTE "Do you want to see its listings? (Y to confirm): ", 0
     userConfirm BYTE ?
 
     ;Purchase
