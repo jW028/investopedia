@@ -19,7 +19,7 @@ INCLUDE IRVINE32.INC
     menuTitle BYTE "INVESTOPEDIA", 0Dh, 0Ah, 0
     menuText BYTE 0Dh, 0Ah, "MENU:", 0Dh, 0Ah
              BYTE "1. Add investment", 0Dh, 0Ah
-             BYTE "2. Remove Investment", 0Dh, 0Ah
+             BYTE "2. View / Remove your Investment", 0Dh, 0Ah
              BYTE "3. Calculator", 0Dh, 0Ah
              BYTE "4. Logout", 0Dh, 0Ah
              BYTE "Enter your choice: ", 0
@@ -32,6 +32,7 @@ INCLUDE IRVINE32.INC
     riPromptName BYTE "Enter investment amount to remove: ", 0
     riSuccess BYTE "Investment removed successfully!", 0Dh, 0Ah, 0
     riError BYTE "Investment not found!", 0Dh, 0Ah, 0
+    delValue DWORD ?
 
     calPage BYTE "You are in Calculator Page", 0Dh, 0Ah, 0
     calcMenu BYTE "1. Calculate Future Value", 0Dh, 0Ah
@@ -58,10 +59,11 @@ INCLUDE IRVINE32.INC
     investChoice DWORD ?
     listingChoice DWORD ?
 
-    investment BYTE "1. Stocks / Equities", 0Dh, 0Ah,
+    investment BYTE "Types of Investment: ", 0Dh, 0Ah, 0Dh, 0Ah,
+                "1. Stocks / Equities", 0Dh, 0Ah,
                "2. Bonds", 0Dh, 0Ah,
                "3. Index Funds", 0Dh, 0Ah,
-               "4. Back", 0Dh, 0Ah,
+               "4. Back", 0Dh, 0Ah, 0Dh, 0Ah,
                "Enter the choice of your investment: ", 0
 
     invest1 BYTE 0Dh, 0Ah, "Investment: Stocks / Equities", 0Dh, 0Ah
@@ -88,7 +90,8 @@ INCLUDE IRVINE32.INC
                BYTE "6. Meta (META)", 0Dh, 0Ah
                BYTE "7. Coca-Cola (KO)", 0Dh, 0Ah
                BYTE "8. Berkshire Hathaway (BRK.A)", 0Dh, 0Ah
-               BYTE "9. Back to investment menu", 0Dh, 0Ah, 0
+               BYTE "9. Back to investment menu", 0Dh, 0Ah, 0Dh, 0Ah
+               BYTE "Enter your selection: ", 0
 
     bondsListTitle BYTE 0Dh, 0Ah, "Available Bonds:", 0Dh, 0Ah, 0
     bondsList BYTE "1. U.S Treasury Bonds", 0Dh, 0Ah
@@ -99,7 +102,8 @@ INCLUDE IRVINE32.INC
               BYTE "6. Inflation-Protected Bonds", 0Dh, 0Ah
               BYTE "7. Green Bonds", 0Dh, 0Ah
               BYTE "8. Convertible Bonds", 0Dh, 0Ah
-              BYTE "9. Back to investment menu", 0Dh, 0Ah, 0
+              BYTE "9. Back to investment menu", 0Dh, 0Ah, 0Dh, 0Ah
+              BYTE "Enter your selection: ", 0
 
     indexListTitle BYTE 0Dh, 0Ah, "Available Index Funds:", 0Dh, 0Ah, 0
     indexList BYTE "1. S&P 500 Index Fund (SPY, VOO, IVV)", 0Dh, 0Ah
@@ -110,7 +114,8 @@ INCLUDE IRVINE32.INC
               BYTE "6. Emerging Markets Index Fund (VWO, EEM)", 0Dh, 0Ah
               BYTE "7. Dividend Growth Index Fund (VIG, SCHD)", 0Dh, 0Ah
               BYTE "8. Bond Index Fund (AGG, BND)", 0Dh, 0Ah
-              BYTE "9. Back to investment menu", 0Dh, 0Ah, 0
+              BYTE "9. Back to investment menu", 0Dh, 0Ah, 0Dh, 0Ah
+              BYTE "Enter your selection: ", 0
 
         tempFloat REAL8 0.0
         resultValue REAL8 0.0
@@ -125,7 +130,7 @@ INCLUDE IRVINE32.INC
     promptPurchase BYTE "Do you want to see its listings? (Y to confirm): ", 0
     userConfirm BYTE ?
 
-    selectedItemMsg BYTE "You selected: ", 0
+    selectedItemMsg BYTE "You selected: ", 0Dh, 0Ah, "Unit Price: $", 0
     stockPrices DWORD 145, 210, 340, 820, 175, 500, 60, 525700
     bondPrices DWORD 1000, 5000, 1000, 800, 100, 1000, 1000, 1000
     indexPrices DWORD 420, 260, 380, 170, 70, 45, 80, 80
@@ -285,17 +290,59 @@ display_history:
     mov edx, OFFSET riPromptName
     call WriteString
     call ReadInt
-    
-    mov edx, OFFSET riSuccess
-    call WriteString
-    call WaitForEnter
-    ret
+    mov delValue, eax
+    jmp delete_investment
+
     
 no_investments:
     mov edx, OFFSET riError
     call WriteString
     call WaitForEnter
     ret
+
+delete_investment:
+    mov ecx, purchaseCount
+    mov esi, OFFSET purchaseHistory
+
+find_loop:
+    mov eax, [esi]
+    cmp eax, delValue
+    je found
+    add esi, 4
+    loop find_loop
+    jmp remove_success
+
+found:
+    mov ebx, esi
+
+shift_loop:
+    add ebx, 4
+    mov eax, purchaseCount
+    imul eax, 4
+    add eax, OFFSET purchaseHistory
+    cmp ebx,eax
+    je clear_last
+
+    mov eax, [ebx]
+    sub ebx, 4
+    mov [ebx], eax
+    add ebx, 4
+    jmp shift_loop
+
+clear_last:
+    sub purchaseCount, 1
+    mov eax, purchaseCount
+    imul eax, 4
+    add eax, OFFSET purchaseHistory
+    mov dword ptr [eax], 0
+
+remove_success:
+    mov edx, OFFSET riSuccess
+    call WriteString
+    call WaitForEnter
+    ret
+
+
 RemoveInvestment ENDP
 
 AddInvestment PROC 
@@ -304,6 +351,7 @@ AddInvestment PROC
     call WriteString
 
 investMenu:
+    call Clrscr
     mov edx, OFFSET investment
     call WriteString
 
@@ -368,10 +416,12 @@ display_stocks_list:
     imul eax, 4
     mov ebx, stockPrices[eax]
     mov unitPrice, ebx
+    mov eax, unitPrice
+    call WriteDec
 
     call purchase_process
     call Clrscr
-    jmp investMenu
+    jmp display_stocks_list
 
 invalid_stock_choice:
     mov edx, OFFSET invalidMsg
@@ -419,6 +469,8 @@ display_bonds_list:
     imul eax, 4
     mov ebx, bondPrices[eax]
     mov unitPrice, ebx
+    mov eax, unitPrice
+    call WriteDec
 
     call purchase_process
     call Clrscr
@@ -470,6 +522,8 @@ display_index_list:
     imul eax, 4
     mov ebx, indexPrices[eax]
     mov unitPrice, ebx
+    mov eax, unitPrice
+    call WriteDec
 
     call purchase_process
     call Clrscr
@@ -510,6 +564,7 @@ purchase_process PROC
     mul quantity
     mov totalPrice, eax
 
+    call Crlf
     mov edx, OFFSET totalMsg
     call WriteString
 
@@ -537,6 +592,7 @@ skip_history_update:
 
 purchase_return:
     ret
+
 purchase_process ENDP
 
 CalculatorMenu PROC
