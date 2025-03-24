@@ -8,7 +8,7 @@ INCLUDE IRVINE32.INC
     promptPass BYTE "Enter password: ", 0
     successMsg BYTE "Login successful", 0Dh, 0Ah, 0
     failureMsg BYTE "Invalid login. Try again.", 0Dh, 0Ah, 0
-    enterMsg BYTE "Press ENTER to continue to the menu...", 0Dh, 0Ah, 0
+    enterMsg BYTE "Press ENTER to continue...", 0Dh, 0Ah, 0
     logoutMsg BYTE "Logging out...", 0Dh, 0Ah, 0
 
     inputUsername BYTE 20 DUP(0)
@@ -55,25 +55,30 @@ INCLUDE IRVINE32.INC
     continueMsgPrompt BYTE "Press ENTER to continue..", 0Dh, 0Ah, 0
 
     userChoice DWORD ?
+    investChoice DWORD ?
+    listingChoice DWORD ?
 
-    ;Add investment data
     investment BYTE "1. Stocks / Equities", 0Dh, 0Ah,
                "2. Bonds", 0Dh, 0Ah,
                "3. Index Funds", 0Dh, 0Ah,
                "4. Back", 0Dh, 0Ah,
                "Enter the choice of your investment: ", 0
 
+    invest1 BYTE 0Dh, 0Ah, "Investment: Stocks / Equities", 0Dh, 0Ah
+            BYTE "Risk Level: Medium - High", 0Dh, 0Ah
+            BYTE "Description: Higher risk, higher potential returns. Suitable for long-term investors.", 0Dh, 0Ah
+            BYTE "Recommended Starting Capital: $1,000", 0Dh, 0Ah, 0
+
     invest2 BYTE 0Dh, 0Ah, "Investment: Bonds", 0Dh, 0Ah
             BYTE "Risk Level: Medium - Low", 0Dh, 0Ah
-            BYTE "Description: Lower risk, moderate returns. Suitable for medium to long-term investors (3+ years).", 0Dh, 0Ah, 0
-            BYTE "Recommended Starting Capital: $500", 0Dh, 0Ah
+            BYTE "Description: Lower risk, moderate returns. Suitable for medium to long-term investors (3+ years).", 0Dh, 0Ah
+            BYTE "Recommended Starting Capital: $500", 0Dh, 0Ah, 0
 
     invest3 BYTE 0Dh, 0Ah, "Investment: Index Funds", 0Dh, 0Ah
             BYTE "Risk Level: Medium", 0Dh, 0Ah
-            BYTE "Description: Moderate risk, good diversification. Suitable for long-term investors (5+ years).", 0Dh, 0Ah, 0
-            BYTE "Recommended Starting Capital: $1,000", 0Dh, 0Ah
+            BYTE "Description: Moderate risk, good diversification. Suitable for long-term investors (5+ years).", 0Dh, 0Ah
+            BYTE "Recommended Starting Capital: $1,000", 0Dh, 0Ah, 0
 
-    ; Investment listings
     stocksListTitle BYTE 0Dh, 0Ah, "Available Stocks:", 0Dh, 0Ah, 0
     stocksList BYTE "1. Apple (AAPL)", 0Dh, 0Ah
                BYTE "2. Tesla (TSLA)", 0Dh, 0Ah
@@ -82,7 +87,8 @@ INCLUDE IRVINE32.INC
                BYTE "5. Amazon (AMZN)", 0Dh, 0Ah
                BYTE "6. Meta (META)", 0Dh, 0Ah
                BYTE "7. Coca-Cola (KO)", 0Dh, 0Ah
-               BYTE "8. Berkshire Hathaway (BRK.A)", 0Dh, 0Ah, 0
+               BYTE "8. Berkshire Hathaway (BRK.A)", 0Dh, 0Ah
+               BYTE "9. Back to investment menu", 0Dh, 0Ah, 0
 
     bondsListTitle BYTE 0Dh, 0Ah, "Available Bonds:", 0Dh, 0Ah, 0
     bondsList BYTE "1. U.S Treasury Bonds", 0Dh, 0Ah
@@ -92,7 +98,8 @@ INCLUDE IRVINE32.INC
               BYTE "5. Government Savings Bonds", 0Dh, 0Ah
               BYTE "6. Inflation-Protected Bonds", 0Dh, 0Ah
               BYTE "7. Green Bonds", 0Dh, 0Ah
-              BYTE "8. Convertible Bonds", 0Dh, 0Ah, 0
+              BYTE "8. Convertible Bonds", 0Dh, 0Ah
+              BYTE "9. Back to investment menu", 0Dh, 0Ah, 0
 
     indexListTitle BYTE 0Dh, 0Ah, "Available Index Funds:", 0Dh, 0Ah, 0
     indexList BYTE "1. S&P 500 Index Fund (SPY, VOO, IVV)", 0Dh, 0Ah
@@ -102,9 +109,9 @@ INCLUDE IRVINE32.INC
               BYTE "5. International Index Fund (VXUS, IXUS)", 0Dh, 0Ah
               BYTE "6. Emerging Markets Index Fund (VWO, EEM)", 0Dh, 0Ah
               BYTE "7. Dividend Growth Index Fund (VIG, SCHD)", 0Dh, 0Ah
-              BYTE "8. Bond Index Fund (AGG, BND)", 0Dh, 0Ah, 0
+              BYTE "8. Bond Index Fund (AGG, BND)", 0Dh, 0Ah
+              BYTE "9. Back to investment menu", 0Dh, 0Ah, 0
 
-     ;Could be used ltr for calcs
         tempFloat REAL8 0.0
         resultValue REAL8 0.0
         interestRate REAL8 0.0
@@ -118,13 +125,11 @@ INCLUDE IRVINE32.INC
     promptPurchase BYTE "Do you want to see its listings? (Y to confirm): ", 0
     userConfirm BYTE ?
 
-    ; Selected item info
     selectedItemMsg BYTE "You selected: ", 0
     stockPrices DWORD 145, 210, 340, 820, 175, 500, 60, 525700
     bondPrices DWORD 1000, 5000, 1000, 800, 100, 1000, 1000, 1000
     indexPrices DWORD 420, 260, 380, 170, 70, 45, 80, 80
 
-    ;Purchase
     promptQuantity BYTE "Enter quantity (-999 to go back): ", 0
     purchaseConfirm BYTE 0Dh, 0Ah, "Purchase successful!", 0Dh, 0Ah, 0
     totalMsg BYTE "Total cost: $", 0
@@ -138,27 +143,19 @@ INCLUDE IRVINE32.INC
     quantity DWORD ?  
     totalPrice DWORD ?
 
-    ;Purchase history
     purchaseHistory DWORD 10 DUP(0)
     purchaseCount DWORD 0
     historyMsg BYTE "Purchase History: ", 0Dh, 0Ah, 0
     
  
-
-
 .code
 main PROC
     call Login
     call Clrscr
     call Menu
+    exit
 main ENDP
 
-
- exit_program:
-        mov edx, OFFSET logoutMsg
-        call WriteString
-        call WaitForEnter
-        call ExitProcess
 WaitForEnter PROC
     mov edx, OFFSET enterMsg
     call WriteString
@@ -214,6 +211,10 @@ Login ENDP
 
 Menu PROC
 menu_loop:
+    call Clrscr
+    mov edx, OFFSET menuTitle
+    call WriteString
+    
     mov edx, OFFSET menuText
     call WriteString
 
@@ -224,12 +225,15 @@ menu_loop:
     cmp userChoice, 1
     je add_investment
     cmp userChoice, 2
-    je calculator
+    je remove_investment
     cmp userChoice, 3
+    je calculator
+    cmp userChoice, 4
     je exit_menu
 
     mov edx, OFFSET invalidMsg
     call WriteString
+    call WaitForEnter
     jmp menu_loop
 
 add_investment:
@@ -237,20 +241,62 @@ add_investment:
     jmp menu_loop
 
 remove_investment:
-    mov edx, OFFSET riPage
-    call WriteString
     call RemoveInvestment
     jmp menu_loop
 
 calculator:
     mov edx, OFFSET calPage
     call WriteString
+    call CalculatorMenu
     jmp menu_loop
 
 exit_menu:
-    jmp exit_program
+    mov edx, OFFSET logoutMsg
+    call WriteString
+    call WaitForEnter
+    exit
 
 Menu ENDP
+
+RemoveInvestment PROC
+    call Clrscr
+    mov edx, OFFSET riPage
+    call WriteString
+    
+    cmp purchaseCount, 0
+    je no_investments
+    
+    mov edx, OFFSET historyMsg
+    call WriteString
+    
+    mov ecx, purchaseCount
+    mov esi, 0
+    
+display_history:
+    mov eax, purchaseHistory[esi*4]
+    call WriteDec
+    mov al, ' '
+    call WriteChar
+    inc esi
+    loop display_history
+    
+    call Crlf
+    
+    mov edx, OFFSET riPromptName
+    call WriteString
+    call ReadInt
+    
+    mov edx, OFFSET riSuccess
+    call WriteString
+    call WaitForEnter
+    ret
+    
+no_investments:
+    mov edx, OFFSET riError
+    call WriteString
+    call WaitForEnter
+    ret
+RemoveInvestment ENDP
 
 AddInvestment PROC 
     call Clrscr
@@ -272,14 +318,17 @@ investMenu:
     cmp investChoice, 3
     je displayInvest3
     cmp investChoice, 4
-    call Menu
+    je return_to_menu
 
     mov edx, OFFSET invalidMsg
     call WriteString
     jmp investMenu
 
+return_to_menu:
+    ret
+
 displayInvest1:
-    mov edx,OFFSET invest1
+    mov edx, OFFSET invest1
     call WriteString
     mov eax, price1
     call Purchase
@@ -293,6 +342,7 @@ displayInvest1:
     jmp investMenu
 
 display_stocks_list:
+    call Clrscr
     mov edx, OFFSET stocksListTitle
     call WriteString
     mov edx, OFFSET stocksList
@@ -343,15 +393,41 @@ displayInvest2:
     jmp investMenu
 
 display_bonds_list:
+    call Clrscr
     mov edx, OFFSET bondsListTitle
     call WriteString
     mov edx, OFFSET bondsList
     call WriteString
-    mov edx, OFFSET enterMsg
-    call WriteString
-    call ReadChar
+
+    call ReadInt
+    mov listingChoice, eax
     call Crlf
+
+    cmp listingChoice, 9
+    je investMenu
+
+    cmp listingChoice, 1
+    jl invalid_bond_choice
+    cmp listingChoice, 8
+    jg invalid_bond_choice
+
+    mov edx, OFFSET selectedItemMsg
+    call WriteString
+
+    mov eax, listingChoice
+    dec eax 
+    imul eax, 4
+    mov ebx, bondPrices[eax]
+    mov unitPrice, ebx
+
+    call purchase_process
+    call Clrscr
     jmp investMenu
+
+invalid_bond_choice:
+    mov edx, OFFSET invalidMsg
+    call WriteString
+    jmp display_bonds_list
 
 displayInvest3:
     mov edx, OFFSET invest3
@@ -368,37 +444,55 @@ displayInvest3:
     jmp investMenu
 
 display_index_list:
+    call Clrscr
     mov edx, OFFSET indexListTitle
     call WriteString
     mov edx, OFFSET indexList
     call WriteString
-    mov edx, OFFSET enterMsg
-    call WriteString
-    call ReadChar
+
+    call ReadInt
+    mov listingChoice, eax
     call Crlf
+
+    cmp listingChoice, 9
+    je investMenu
+
+    cmp listingChoice, 1
+    jl invalid_index_choice
+    cmp listingChoice, 8
+    jg invalid_index_choice
+
+    mov edx, OFFSET selectedItemMsg
+    call WriteString
+
+    mov eax, listingChoice
+    dec eax 
+    imul eax, 4
+    mov ebx, indexPrices[eax]
+    mov unitPrice, ebx
+
+    call purchase_process
+    call Clrscr
     jmp investMenu
+
+invalid_index_choice:
+    mov edx, OFFSET invalidMsg
+    call WriteString
+    jmp display_index_list
 
 AddInvestment ENDP
 
-
 Purchase PROC
-    ;call Crlf
     mov unitPrice, eax
 
     mov edx, OFFSET promptPurchase
     call WriteString
-    call ReadCharWithEcho
+    call ReadChar
     mov userConfirm, al
+    call WriteChar
     call Crlf
-
-    ;cmp userConfirm, 'Y'
-    ;je purchase_process
-    ;cmp userConfirm, 'y'
-    ;je purchase_process
     
     ret
-
-
 Purchase ENDP
 
 purchase_process PROC
@@ -407,15 +501,13 @@ purchase_process PROC
     call WriteString
     
     call ReadInt
+    mov quantity, eax
 
     cmp eax, -999
     je purchase_return
-    ; Save quantity in ecx
-    mov ecx, eax
-    ; Calculate total price
+    
     mov eax, unitPrice
-    mul ecx
-
+    mul quantity
     mov totalPrice, eax
 
     mov edx, OFFSET totalMsg
@@ -426,58 +518,60 @@ purchase_process PROC
     call Crlf
 
     mov ecx, purchaseCount
+    cmp ecx, 10
+    jge skip_history_update
+    
     mov edi, OFFSET purchaseHistory
+    mov eax, totalPrice
     mov [edi + ecx * 4], eax
     inc purchaseCount
-
+    
+skip_history_update:
     mov edx, OFFSET purchaseConfirm
     call WriteString
-    call Crlf
 
     mov edx, OFFSET enterMsg
-    mov eax, [esi]
+    call WriteString
     call ReadChar
     call Crlf
 
+purchase_return:
+    ret
 purchase_process ENDP
-purchase_process ENDP
-
-
-
-
 
 CalculatorMenu PROC
-    ; Display calculator menu
+calculator_loop:
     mov edx, OFFSET calcMenu
     call WriteString
     
-    ; Read user choice
-    call ReadChar
-    call WriteChar
+    call ReadInt
     call Crlf
 
-    cmp al, '1'
+    cmp eax, 1
     je calc_future_value
-    cmp al, '2'
+    cmp eax, 2
     je calc_profit_loss
-    cmp al, '3'
+    cmp eax, 3
     je calc_roi
-    cmp al, '4'
+    cmp eax, 4
     je calc_cagr
-    cmp al, '5'
+    cmp eax, 5
     je calc_compound
-    cmp al, '6'
+    cmp eax, 6
     je exit_calculator
 
     mov edx, OFFSET invalidMsg
     call WriteString
-    jmp CalculatorMenu 
+    jmp calculator_loop
 
-;The Calculations r not done just placeholder
 calc_future_value:
+    mov edx, OFFSET calcPromptPrincipal
+    call WriteString
+    call ReadInt
+    mov eax, 1000   
+    
     mov edx, OFFSET calcResultMsg
     call WriteString
-    mov eax, 1000   
     call WriteDec
     call Crlf
     
@@ -485,7 +579,7 @@ calc_future_value:
     call WriteString
     call ReadChar
     call Crlf
-    ret
+    jmp calculator_loop
     
 calc_profit_loss:
     mov edx, OFFSET calcResultMsg
@@ -498,7 +592,7 @@ calc_profit_loss:
     call WriteString
     call ReadChar
     call Crlf
-    ret
+    jmp calculator_loop
     
 calc_roi:
     mov edx, OFFSET calcPercentMsg
@@ -513,7 +607,7 @@ calc_roi:
     call WriteString
     call ReadChar
     call Crlf
-    ret
+    jmp calculator_loop
     
 calc_cagr:
     mov edx, OFFSET calcPercentMsg
@@ -528,7 +622,7 @@ calc_cagr:
     call WriteString
     call ReadChar
     call Crlf
-    ret
+    jmp calculator_loop
     
 calc_compound:
     mov edx, OFFSET calcResultMsg
@@ -541,39 +635,39 @@ calc_compound:
     call WriteString
     call ReadChar
     call Crlf
-    ret
+    jmp calculator_loop
     
 exit_calculator:
     ret
 CalculatorMenu ENDP
 
 CompareStrings PROC
-    push ecx  ; Save registers
+    push ecx
     push esi
     push edi
 
 compare_loop:
-    mov al, [esi]   ; Load byte from first string
-    mov bl, [edi]   ; Load byte from second string
-    cmp al, bl      ; Compare characters
-    jne not_equal   ; If different, return nonzero
+    mov al, [esi]
+    mov bl, [edi]
+    cmp al, bl
+    jne not_equal
 
-    cmp al, 0       ; Check if end of string (null terminator)
-    je strings_equal ; If both are 0, they match
+    cmp al, 0
+    je strings_equal
 
-    inc esi         ; Move to next char in first string
-    inc edi         ; Move to next char in second string
+    inc esi
+    inc edi
     jmp compare_loop
 
 not_equal:
-    mov eax, 1      ; Return 1 (not equal)
+    mov eax, 1
     jmp compare_end
 
 strings_equal:
-    mov eax, 0      ; Return 0 (equal)
+    mov eax, 0
 
 compare_end:
-    pop edi         ; Restore registers
+    pop edi
     pop esi
     pop ecx
     ret
@@ -582,10 +676,11 @@ CompareStrings ENDP
 ReadCharWithEcho PROC
     call ReadChar
 
-    mov bl, al     ; Save the character in bl
-    call WriteChar ; Display the character
+    mov bl, al
+    call WriteChar
 
-    ret 		   ; Return
+    mov al, bl
+    ret
 ReadCharWithEcho ENDP
 
 END main
