@@ -51,6 +51,32 @@ INCLUDE IRVINE32.INC
     calcPercentMsg BYTE "Calculation Result: ", 0
     percentSign BYTE "%", 0
 
+    ; Calculator Input Prompts
+    ; TPV = CSV x SQ
+    ; FV = TPV x (1 + AIR) ^ Y
+    ; TPL = TPV - II - F
+    ; II = SQ x PSP
+    ; F = TC + BF
+    ; CAGR = (TPL/II)^(1/Y) - 1
+    ; ROI = (TPL/II) x 100
+    ; FA = PA * (1 + (AIR/TICY)) ^ (TICY x Y)
+    promptTPV       BYTE "Total Portfolio Value = ", 0Ah, 0Dh, 0
+    promptCSV       BYTE "Enter current stock value: RM ", 0
+    promptSQ        BYTE "Enter stock quantity: ", 0
+    promptAIR       BYTE "Enter Annual Interest Rate: RM ", 0
+    promptY         BYTE "Enter the number of years: ", 0
+    promptTPL       BYTE "Total Profit/Loss= RM ", 0Ah, 0Dh, 0
+    promptII        BYTE "Enter your initial investment: RM ", 0
+    promptPSP       BYTE "Enter your purchase stock price: RM ", 0
+    promptTC        BYTE "Enter transaction costs: RM ", 0
+    promptBF        BYTE "Enter brokage fees: RM ", 0
+    promptCAGR      BYTE "Compound Annual Growth Rate = RM ", 0Ah, 0Dh, 0
+    promptROI       BYTE "Return of Investment = RM ", 0Ah, 0Dh, 0
+    promptFA        BYTE "Final amount = RM ", 0Ah, 0Dh, 0
+    promptPA        BYTE "Enter principal amount: RM ", 0
+    promptTICY      BYTE "Enter the number of times compounded per year: RM ", 0 
+
+
 
     invalidMsg BYTE "Invalid choice. Try again.", 0Dh, 0Ah, 0
     continueMsgPrompt BYTE "Press ENTER to continue..", 0Dh, 0Ah, 0
