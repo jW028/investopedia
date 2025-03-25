@@ -1,18 +1,59 @@
 INCLUDE IRVINE32.INC
 
 .data
-    username BYTE "admin", 0
-    password BYTE "1234", 0
+    MAX_USERS EQU 10          ; Max users reg
+    MAX_NAME_LENGTH EQU 50
+    MAX_EMAIL_LENGTH EQU 100
+    MAX_PASSWORD_LENGTH EQU 50
 
-    promptUser BYTE "Enter username: ", 0
-    promptPass BYTE "Enter password: ", 0
-    successMsg BYTE "Login successful", 0Dh, 0Ah, 0
-    failureMsg BYTE "Invalid login. Try again.", 0Dh, 0Ah, 0
+    User STRUCT
+        name        BYTE MAX_NAME_LENGTH DUP(0)
+        email       BYTE MAX_EMAIL_LENGTH DUP(0)
+        password    BYTE MAX_PASSWORD_LENGTH DUP(0)
+    User ENDS
+
+    userDatabase   User MAX_USERS DUP(<>)
+    userCount      DWORD 0
+
+    registrationTitle BYTE "INVESTOPEDIA - USER REGISTRATION", 0Dh, 0Ah, 0
+    promptName        BYTE "Enter your full name: ", 0
+    promptEmail       BYTE "Enter your email address: ", 0
+    promptPassword    BYTE "Enter your password: ", 0
+    confirmPassword   BYTE "Confirm your password: ", 0
+
+    errorNameTooShort BYTE "Name must be at least 3 characters long.", 0Dh, 0Ah, 0
+    errorEmailInvalid BYTE "Invalid email format. Must contain '@' and '.'", 0Dh, 0Ah, 0
+    errorPasswordShort BYTE "Password must be at least 6 characters long.", 0Dh, 0Ah, 0
+    errorPasswordMismatch BYTE "Passwords do not match.", 0Dh, 0Ah, 0
+    errorEmailExists   BYTE "Email already registered.", 0Dh, 0Ah, 0
+
+    regsuccessMsg BYTE "Registration successful", 0Dh, 0Ah, 0
+    regfailureMsg BYTE "Invalid registration. Try again.", 0Dh, 0Ah, 0
     enterMsg BYTE "Press ENTER to continue...", 0Dh, 0Ah, 0
     logoutMsg BYTE "Logging out...", 0Dh, 0Ah, 0
 
-    inputUsername BYTE 20 DUP(0)
-    inputPassword BYTE 20 DUP(0)
+    loginTitle        BYTE "INVESTOPEDIA - LOGIN", 0Dh, 0Ah, 0
+    promptLoginEmail  BYTE "Enter your email: ", 0
+    promptLoginPass   BYTE "Enter your password: ", 0
+    loginSuccessMsg   BYTE "Login successful!", 0Dh, 0Ah, 0
+    loginFailMsg      BYTE "Invalid email or password.", 0Dh, 0Ah, 0
+
+    inputName         BYTE MAX_NAME_LENGTH DUP(0)
+    inputEmail        BYTE MAX_EMAIL_LENGTH DUP(0)
+    inputPassword     BYTE MAX_PASSWORD_LENGTH DUP(0)
+    confirmInputPass  BYTE MAX_PASSWORD_LENGTH DUP(0)
+    inputLoginEmail   BYTE MAX_EMAIL_LENGTH DUP(0)
+    inputLoginPass    BYTE MAX_PASSWORD_LENGTH DUP(0)
+
+    currentUserIndex  DWORD ?
+    loginSuccess      BYTE 0
+
+    ; Added for the second login procedure
+    promptUser        BYTE "Enter your username: ", 0
+    promptPass        BYTE "Enter your password: ", 0
+    username          BYTE "admin", 0
+    password          BYTE "password", 0
+    inputUsername     BYTE MAX_NAME_LENGTH DUP(0)
 
     newline BYTE 0Dh, 0Ah, 0
 
@@ -22,13 +63,13 @@ INCLUDE IRVINE32.INC
              BYTE "2. View / Remove your Investment", 0Dh, 0Ah
              BYTE "3. Calculator", 0Dh, 0Ah
              BYTE "4. Logout", 0Dh, 0Ah
-             BYTE "Enter your choice: ", 0
+             BYTE "Enter your choice (1-4): ", 0
     
-    aiPage BYTE "You are in Add Investment Page", 0Dh, 0Ah, 0
+    aiPage BYTE "Available Investments", 0Dh, 0Ah, 0
     aiPromptAmount BYTE "Enter investment amount: ", 0
     aiSuccess BYTE "Investment added successfully!", 0Dh, 0Ah, 0
 
-    riPage BYTE "You are in Remove Investment Page", 0Dh, 0Ah, 0
+    riPage BYTE "Investment Details", 0Dh, 0Ah, 0
     riPromptName BYTE "Enter investment amount to remove: ", 0
     riSuccess BYTE "Investment removed successfully!", 0Dh, 0Ah, 0
     riError BYTE "Investment not found!", 0Dh, 0Ah, 0
@@ -41,7 +82,7 @@ INCLUDE IRVINE32.INC
              BYTE "4. Calculate Annual Growth Rate (CAGR)", 0Dh, 0Ah
              BYTE "5. Calculate Compound Interest", 0Dh, 0Ah
              BYTE "6. Return to Main Menu", 0Dh, 0Ah
-             BYTE "Enter your choice: ", 0
+             BYTE "Enter your choice (1-6): ", 0
     calcPromptValue     BYTE "Enter Your Portfolio Value: ", 0
     calcPromptRate      BYTE "Enter annual interest rate (as decimal, e.g., 0.05 for 5%): ", 0
     calcPromptYears     BYTE "Enter number of years: ", 0
@@ -74,7 +115,7 @@ INCLUDE IRVINE32.INC
                "2. Bonds", 0Dh, 0Ah,
                "3. Index Funds", 0Dh, 0Ah,
                "4. Back", 0Dh, 0Ah, 0Dh, 0Ah,
-               "Enter the choice of your investment: ", 0
+               "Enter the choice of your investment (1-4): ", 0
 
     invest1 BYTE 0Dh, 0Ah, "Investment: Stocks / Equities", 0Dh, 0Ah
             BYTE "Risk Level: Medium - High", 0Dh, 0Ah
@@ -101,7 +142,7 @@ INCLUDE IRVINE32.INC
                BYTE "7. Coca-Cola (KO)", 0Dh, 0Ah
                BYTE "8. Berkshire Hathaway (BRK.A)", 0Dh, 0Ah
                BYTE "9. Back to investment menu", 0Dh, 0Ah, 0Dh, 0Ah
-               BYTE "Enter your selection: ", 0
+               BYTE "Enter your selection (1-9): ", 0
 
     bondsListTitle BYTE 0Dh, 0Ah, "Available Bonds:", 0Dh, 0Ah, 0
     bondsList BYTE "1. U.S Treasury Bonds", 0Dh, 0Ah
@@ -113,7 +154,7 @@ INCLUDE IRVINE32.INC
               BYTE "7. Green Bonds", 0Dh, 0Ah
               BYTE "8. Convertible Bonds", 0Dh, 0Ah
               BYTE "9. Back to investment menu", 0Dh, 0Ah, 0Dh, 0Ah
-              BYTE "Enter your selection: ", 0
+              BYTE "Enter your selection (1-9): ", 0
 
     indexListTitle BYTE 0Dh, 0Ah, "Available Index Funds:", 0Dh, 0Ah, 0
     indexList BYTE "1. S&P 500 Index Fund (SPY, VOO, IVV)", 0Dh, 0Ah
@@ -125,18 +166,18 @@ INCLUDE IRVINE32.INC
               BYTE "7. Dividend Growth Index Fund (VIG, SCHD)", 0Dh, 0Ah
               BYTE "8. Bond Index Fund (AGG, BND)", 0Dh, 0Ah
               BYTE "9. Back to investment menu", 0Dh, 0Ah, 0Dh, 0Ah
-              BYTE "Enter your selection: ", 0
+              BYTE "Enter your selection (1-9): ", 0
 
-        tempFloat REAL8 0.0
-        resultValue REAL8 0.0
-        interestRate REAL8 0.0
-        numYears REAL8 0.0
-        fees REAL8 0.0
-        compounds DWORD 0
-        principalAmount REAL8 0.0
-        portfolioValue REAL8 0.0
-        initialInvestment REAL8 0.0
-        profitLoss REAL8 0.0
+    tempFloat REAL8 0.0
+    resultValue REAL8 0.0
+    interestRate REAL8 0.0
+    numYears REAL8 0.0
+    fees REAL8 0.0
+    compounds DWORD 0
+    principalAmount REAL8 0.0
+    portfolioValue REAL8 0.0
+    initialInvestment REAL8 0.0
+    profitLoss REAL8 0.0
     promptPurchase BYTE "Do you want to see its listings? (Y to confirm): ", 0
     userConfirm BYTE ?
 
@@ -162,14 +203,319 @@ INCLUDE IRVINE32.INC
     purchaseCount DWORD 0
     historyMsg BYTE "Purchase History: ", 0Dh, 0Ah, 0
     
- 
 .code
-main PROC
-    call Login
+; Validation procedures
+ValidateName PROC USES esi ecx
+    mov esi, OFFSET inputName
+    mov ecx, 0
+
+count_chars:
+    mov al, [esi]
+    cmp al, 0
+    je check_length
+    inc ecx
+    inc esi
+    jmp count_chars
+
+check_length:
+    cmp ecx, 2
+    jle invalid_name
+    mov eax, 1  ; Valid
+    ret
+
+invalid_name:
+    mov edx, OFFSET errorNameTooShort
+    call WriteString
+    mov eax, 0  ; Invalid
+    ret
+ValidateName ENDP
+
+ValidateEmail PROC USES esi
+    mov esi, OFFSET inputEmail
+    mov al, 0  ; '@' flag
+    mov bl, 0  ; '.' flag
+
+check_email_chars:
+    mov cl, [esi]
+    cmp cl, 0
+    je check_email_flags
+
+    cmp cl, '@'
+    jne check_dot
+    mov al, 1
+
+check_dot:
+    cmp cl, '.'
+    jne next_char
+    mov bl, 1
+
+next_char:
+    inc esi
+    jmp check_email_chars
+
+check_email_flags:
+    cmp al, 1
+    jne invalid_email
+    cmp bl, 1
+    jne invalid_email
+    mov eax, 1  ; Valid
+    ret
+
+invalid_email:
+    mov edx, OFFSET errorEmailInvalid
+    call WriteString
+    mov eax, 0  ; Invalid
+    ret
+ValidateEmail ENDP
+
+ValidatePassword PROC USES esi ecx
+    mov esi, OFFSET inputPassword
+    mov ecx, 0
+
+count_pass_chars:
+    mov al, [esi]
+    cmp al, 0
+    je check_pass_length
+    inc ecx
+    inc esi
+    jmp count_pass_chars
+
+check_pass_length:
+    cmp ecx, 5
+    jle invalid_password
+    mov eax, 1  ; Valid
+    ret
+
+invalid_password:
+    mov edx, OFFSET errorPasswordShort
+    call WriteString
+    mov eax, 0  ; Invalid
+    ret
+ValidatePassword ENDP
+
+; Read password with asterisk masking
+ReadPasswordWithMask PROC USES esi ecx edx
+    mov esi, edx      ; Store destination buffer address from edx
+    mov ecx, 0
+
+read_pass_char:
+    call ReadChar     ; Changed from ReadCharWithEcho to avoid double echo
+    cmp al, 0Dh       ; Enter key
+    je finish_password_input
+
+    cmp al, 8         ; Backspace
+    je handle_backspace
+
+    cmp ecx, MAX_PASSWORD_LENGTH - 1
+    je read_pass_char
+
+    mov [esi], al
+    inc esi
+    inc ecx
+
+    mov al, '*'
+    call WriteChar
+    jmp read_pass_char
+
+handle_backspace:
+    cmp ecx, 0
+    je read_pass_char
+    ; Removed duplicate je read_pass_char
+    dec esi
+    dec ecx
+    mov byte ptr [esi], 0
+    mov al, 8
+    call WriteChar
+    mov al, ' '
+    call WriteChar
+    mov al, 8
+    call WriteChar
+    jmp read_pass_char
+
+finish_password_input:
+    mov byte ptr [esi], 0
+    call Crlf
+    ret
+ReadPasswordWithMask ENDP
+
+; Copy string from source to destination
+CopyString PROC USES esi edi ebx
+copy_loop:
+    mov al, [edi]
+    mov [ebx], al
+    inc edi
+    inc ebx
+    cmp al, 0
+    jne copy_loop
+    ret
+CopyString ENDP
+
+; Registration Procedure
+Registration PROC
+registration_start:
     call Clrscr
-    call Menu
-    exit
-main ENDP
+    mov edx, OFFSET registrationTitle
+    call WriteString
+
+    ; Name input
+    mov edx, OFFSET promptName
+    call WriteString
+    mov edx, OFFSET inputName
+    mov ecx, MAX_NAME_LENGTH
+    call ReadString
+    call ValidateName
+    cmp eax, 0
+    je registration_start
+
+    ; Email input
+    mov edx, OFFSET promptEmail
+    call WriteString
+    mov edx, OFFSET inputEmail
+    mov ecx, MAX_EMAIL_LENGTH
+    call ReadString
+    call ValidateEmail
+    cmp eax, 0
+    je registration_start
+    
+
+    ; Password input
+    mov edx, OFFSET promptPassword
+    call WriteString
+    mov edx, OFFSET inputPassword
+    call ReadPasswordWithMask
+    call ValidatePassword
+    cmp eax, 0
+    je registration_start
+
+    ; Confirm password input
+    mov edx, OFFSET confirmPassword
+    call WriteString
+    mov edx, OFFSET confirmInputPass
+    call ReadPasswordWithMask
+
+    ; Compare passwords
+    mov esi, OFFSET inputPassword
+    mov edi, OFFSET confirmInputPass
+    call CompareStrings
+    cmp eax, 0
+    je password_match
+
+    mov edx, OFFSET errorPasswordMismatch
+    call WriteString
+    jmp registration_start
+
+password_match:
+    ; Store user in database
+    mov esi, OFFSET userDatabase
+    mov ecx, userCount
+    imul ecx, SIZEOF User
+    add esi, ecx
+
+    ; Copy name
+    mov edi, OFFSET inputName
+    call CopyString
+
+    ; Copy email
+    mov edi, OFFSET inputEmail
+    lea ebx, [esi + User.email]
+    call CopyString
+
+    ; Copy password
+    mov edi, OFFSET inputPassword
+    lea ebx, [esi + User.password]
+    call CopyString
+
+    inc userCount
+    
+    ; Show success message
+    mov edx, OFFSET regsuccessMsg
+    call WriteString
+    call WaitForEnter
+    ret
+Registration ENDP
+
+; Login Procedure
+Login PROC
+login_start:
+    call Clrscr
+    mov loginSuccess, 0
+    mov edx, OFFSET loginTitle
+    call WriteString
+
+    ; Email input
+    mov edx, OFFSET promptLoginEmail
+    call WriteString
+    mov edx, OFFSET inputLoginEmail
+    mov ecx, MAX_EMAIL_LENGTH
+    call ReadString
+
+    ; Password input
+    mov edx, OFFSET promptLoginPass
+    call WriteString
+    mov edx, OFFSET inputLoginPass
+    call ReadPasswordWithMask
+
+    ; Check credentials
+    mov ecx, userCount
+    cmp ecx, 0
+    je login_failed
+    mov esi, OFFSET userDatabase
+
+check_login:
+    push ecx
+
+    ; Compare email
+    lea edi, [esi + User.email]
+    mov ebx, OFFSET inputLoginEmail
+    
+check_email_loop:
+    mov al, [edi]
+    mov ah, [ebx]
+    cmp al, ah
+    jne next_user
+    cmp al, 0
+    je email_match
+    inc edi
+    inc ebx
+    jmp check_email_loop
+    
+email_match:
+    ; Compare password
+    lea edi, [esi + User.password]
+    mov ebx, OFFSET inputLoginPass
+    
+check_password_loop:
+    mov al, [edi]
+    mov ah, [ebx]
+    cmp al, ah
+    jne next_user
+    cmp al, 0
+    je login_success
+    inc edi
+    inc ebx
+    jmp check_password_loop
+
+next_user:
+    add esi, SIZEOF User
+    pop ecx
+    dec ecx
+    jnz check_login
+    jmp login_failed
+
+login_failed:
+    mov edx, OFFSET loginFailMsg
+    call WriteString
+    call WaitForEnter
+    jmp login_start
+
+login_success:
+    pop ecx
+    mov loginSuccess, 1
+    mov edx, OFFSET loginSuccessMsg
+    call WriteString
+    call WaitForEnter
+    ret
+Login ENDP
 
 WaitForEnter PROC
     mov edx, OFFSET enterMsg
@@ -179,7 +525,8 @@ WaitForEnter PROC
     ret
 WaitForEnter ENDP
 
-Login PROC
+; Renamed to avoid duplicate procedure
+AdminLogin PROC
 login_attempt:
     mov edx, OFFSET promptUser
     call WriteString
@@ -206,7 +553,7 @@ login_attempt:
     cmp eax, 0
     jne login_failed
 
-    mov edx, OFFSET successMsg
+    mov edx, OFFSET regsuccessMsg
     call WriteString
     
     mov edx, OFFSET enterMsg
@@ -217,12 +564,11 @@ login_attempt:
     ret
 
 login_failed:
-    mov edx, OFFSET failureMsg
+    mov edx, OFFSET regfailureMsg
     call WriteString
     call WaitForEnter
     jmp login_attempt
-
-Login ENDP
+AdminLogin ENDP
 
 Menu PROC
 menu_loop:
@@ -270,7 +616,6 @@ exit_menu:
     call WriteString
     call WaitForEnter
     exit
-
 Menu ENDP
 
 RemoveInvestment PROC
@@ -351,8 +696,6 @@ remove_success:
     call WriteString
     call WaitForEnter
     ret
-
-
 RemoveInvestment ENDP
 
 AddInvestment PROC 
@@ -546,7 +889,6 @@ invalid_index_choice:
     mov edx, OFFSET invalidMsg
     call WriteString
     jmp display_index_list
-
 AddInvestment ENDP
 
 Purchase PROC
@@ -605,7 +947,6 @@ skip_history_update:
 
 purchase_return:
     ret
-
 purchase_process ENDP
 
 CalculatorMenu PROC
@@ -619,7 +960,7 @@ calculator_loop:
     cmp eax, 1
     je calc_future_value
     cmp eax, 2
-    je calc_profit_loss
+     je calc_profit_loss
     cmp eax, 3
     je calc_roi
     cmp eax, 4
@@ -790,4 +1131,10 @@ ReadCharWithEcho PROC
     ret
 ReadCharWithEcho ENDP
 
+main PROC
+    call Registration
+    call Login
+    call Menu
+    exit
+main ENDP
 END main
