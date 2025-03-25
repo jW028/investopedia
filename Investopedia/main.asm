@@ -368,8 +368,11 @@ investMenu:
     cmp investChoice, 4
     je return_to_menu
 
+
     mov edx, OFFSET invalidMsg
     call WriteString
+    mov edx, OFFSET enterMsg
+    call ReadChar
     jmp investMenu
 
 return_to_menu:
