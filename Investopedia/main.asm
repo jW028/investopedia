@@ -42,40 +42,24 @@ INCLUDE IRVINE32.INC
              BYTE "5. Calculate Compound Interest", 0Dh, 0Ah
              BYTE "6. Return to Main Menu", 0Dh, 0Ah
              BYTE "Enter your choice: ", 0
-    calcPromptRate BYTE "Enter annual interest rate (as decimal, e.g., 0.05 for 5%): ", 0
-    calcPromptYears BYTE "Enter number of years: ", 0
-    calcPromptFees BYTE "Enter transaction fees: $", 0
-    calcPromptCompound BYTE "Enter number of times interest is compounded per year: ", 0
+    calcPromptValue     BYTE "Enter Your Portfolio Value: ", 0
+    calcPromptRate      BYTE "Enter annual interest rate (as decimal, e.g., 0.05 for 5%): ", 0
+    calcPromptYears     BYTE "Enter number of years: ", 0
+    calcPromptFees      BYTE "Enter transaction fees: $", 0
+    calcPromptCompound  BYTE "Enter number of times interest is compounded per year: ", 0
     calcPromptPrincipal BYTE "Enter principal amount: $", 0
-    calcResultMsg BYTE "Calculation Result: $", 0
-    calcPercentMsg BYTE "Calculation Result: ", 0
-    percentSign BYTE "%", 0
+    calcPromptROI       BYTE "Return of Investment = RM ", 0Ah, 0Dh, 0
+    calcResultMsg       BYTE "Calculation Result: $", 0
+    calcPercentMsg      BYTE "Calculation Result: ", 0
+    
+    percentSign         BYTE "%", 0
 
-    ; Calculator Input Prompts
-    ; TPV = CSV x SQ
-    ; FV = TPV x (1 + AIR) ^ Y
-    ; TPL = TPV - II - F
-    ; II = SQ x PSP
-    ; F = TC + BF
-    ; CAGR = (TPL/II)^(1/Y) - 1
-    ; ROI = (TPL/II) x 100
-    ; FA = PA * (1 + (AIR/TICY)) ^ (TICY x Y)
-    promptTPV       BYTE "Total Portfolio Value = ", 0Ah, 0Dh, 0
-    promptCSV       BYTE "Enter current stock value: RM ", 0
-    promptSQ        BYTE "Enter stock quantity: ", 0
-    promptAIR       BYTE "Enter Annual Interest Rate: RM ", 0
-    promptY         BYTE "Enter the number of years: ", 0
-    promptTPL       BYTE "Total Profit/Loss= RM ", 0Ah, 0Dh, 0
-    promptII        BYTE "Enter your initial investment: RM ", 0
-    promptPSP       BYTE "Enter your purchase stock price: RM ", 0
-    promptTC        BYTE "Enter transaction costs: RM ", 0
-    promptBF        BYTE "Enter brokage fees: RM ", 0
-    promptCAGR      BYTE "Compound Annual Growth Rate = RM ", 0Ah, 0Dh, 0
-    promptROI       BYTE "Return of Investment = RM ", 0Ah, 0Dh, 0
-    promptFA        BYTE "Final amount = RM ", 0Ah, 0Dh, 0
-    promptPA        BYTE "Enter principal amount: RM ", 0
-    promptTICY      BYTE "Enter the number of times compounded per year: RM ", 0 
-
+    calcFutureMsg    BYTE "Your Future Value: $", 0Ah, 0Dh, 0
+    futureValue         DWORD ?
+    totalPortfolioValue DWORD ?
+    rate  DWORD ?
+    years DWORD ?
+    scale  DWORD 10000
 
 
     invalidMsg BYTE "Invalid choice. Try again.", 0Dh, 0Ah, 0
@@ -650,13 +634,51 @@ calculator_loop:
     jmp calculator_loop
 
 calc_future_value:
-    mov edx, OFFSET calcPromptPrincipal
+    mov edx, OFFSET calcPromptValue
     call WriteString
     call ReadInt
-    mov eax, 1000   
+    mov totalPortfolioValue, eax
     
-    mov edx, OFFSET calcResultMsg
+    mov edx, OFFSET calcPromptRate
     call WriteString
+    call ReadInt
+    mov rate, eax
+
+    mov eax, rate
+    imul eax, 100
+    mov rate, eax
+
+    mov edx, OFFSET calcPromptYears
+    call WriteString
+    call ReadInt
+    mov years, eax
+
+    mov eax, rate
+    add eax, scale
+    mov ebx, eax
+
+    mov eax, scale
+    mov ecx, years
+    
+
+exp_loop:
+    test ecx, ecx
+    jz done_exp
+
+    mul ebx
+    div scale
+
+    loop exp_loop
+
+done_exp:
+    mul totalPortfolioValue
+    div scale
+
+    mov futureValue, eax
+
+    mov edx, OFFSET calcFutureMsg
+    call WriteString
+    mov eax, futureValue
     call WriteDec
     call Crlf
     
