@@ -95,9 +95,12 @@ INCLUDE IRVINE32.INC
     calcPercentMsg      BYTE "Calculation Result: ", 0
     calcFutureMsg       BYTE "Your Future Value: $", 0Ah, 0Dh, 0
     calcProfitLossMsg   BYTE "The total profit or loss: $", 0Ah, 0Dh, 0
+    calcInitialInvestmentMsg    BYTE "Your initial investment is: RM", 0Ah, 0Dh, 0
+    calcCAGRMsg         BYTE "The Compound Annual Growth Rate: RM", 0Ah, 0Dh, 0
     percentSign         BYTE "%", 0
     calcTransCost       DWORD 500
     calcBrokeFees           DWORD 1000
+    noPurchaseMsg       BYTE "There are no recent purchases.", 0Ah, 0Dh, 0
 
     profit_loss         DWORD ?
     futureValue         DWORD ?
@@ -107,6 +110,9 @@ INCLUDE IRVINE32.INC
     scale  DWORD 10000
     initial_investment  DWORD ?
     fees  DWORD ?
+    cagr  DWORD ?
+    scale_factor DWORD 1000
+    ratio DWORD ?
 
     invalidMsg BYTE "Invalid choice. Try again.", 0Dh, 0Ah, 0
     continueMsgPrompt BYTE "Press ENTER to continue..", 0Dh, 0Ah, 0
@@ -965,7 +971,7 @@ calculator_loop:
     cmp eax, 1
     je calc_future_value
     cmp eax, 2
-     je calc_profit_loss
+    je calc_profit_loss
     cmp eax, 3
     je calc_roi
     cmp eax, 4
@@ -1039,32 +1045,31 @@ calc_profit_loss:
     cmp ecx, 0
     je no_purchases         ; If no purchases, skip
 
-    mov eax, 0
-    mov initial_investment, eax
+    ;mov eax, 0
+    ;mov initial_investment, eax
 
-    dec ecx
-    mov ecx, purchaseCount
+    ;mov ecx, purchaseCount
     mov edi, OFFSET purchaseHistory
-    xor eax, eax  ; Clear EAX for summation
+    xor eax, eax            ; Clear EAX for summation
 
 sum_loop:
-    add eax, [edi]  ; Add purchase price to EAX
-    add edi, 4      ; Move to next purchase entry
-    loop sum_loop   ; Repeat until all purchases are added
+    add eax, [edi]          ; Add purchase price to EAX
+    add edi, 4              ; Move to next purchase entry
+    loop sum_loop           ; Repeat until all purchases are added
 
-    mov initial_investment, eax
+    mov initial_investment, eax     ;Store total purchases
 
     mov eax, calcTransCost
     add eax, calcBrokeFees
-    mov fees, eax
+    mov fees, eax                   ;Store total fees
 
     mov edx, OFFSET calcPromptValue
     call WriteString
-    call ReadInt
+    call ReadInt                    ; Read total portfolio value
 
     sub eax, initial_investment
     sub eax, fees
-    mov profit_loss, eax
+    mov profit_loss, eax            ; Store profit/loss result
 
     mov edx, OFFSET calcProfitLossMsg
     call WriteString   
@@ -1077,7 +1082,10 @@ sum_loop:
     call Crlf
     jmp calculator_loop
 
-no_purchases:  ; Missing label added here
+no_purchases:
+    call Crlf
+    mov edx, OFFSET noPurchaseMsg
+    call ReadChar
     call Crlf
     ret
 calc_roi:
@@ -1096,12 +1104,52 @@ calc_roi:
     jmp calculator_loop
     
 calc_cagr:
-    mov edx, OFFSET calcPercentMsg
+    ;Prompt for Total Profit
+    mov edx, OFFSET calcPromptYears
     call WriteString
-    mov eax, 8      
+    call ReadInt
+    mov profit_loss, eax
+
+    ;Prompt for initial investment
+    mov edx, OFFSET calcInitialInvestmentMsg
+    call WriteString
+    call ReadInt
+    mov initial_investment, eax
+    
+    ;Prompt for Years
+    mov edx, OFFSET calcPromptYears
+    call WriteString
+    call ReadInt
+    mov years, eax
+
+    ;Compute (Total Profit / Initial Investment)
+    mov eax, profit_loss
+    mov ebx, initial_investment
+    mul scale_factor                ; Multiply by scale factor
+    div ebx                         ; eax = (profit_loss * scale_factor)/ initial_investment
+
+    mov ratio, eax
+
+    ; Compute (1/Years)
+    mov ecx, years
+    mov eax, scale_factor           ; Start with base value
+
+cagr_loop:
+    div ecx                         ; eax = ecx / Years
+    loop cagr_loop                  ; Repeat until exponentiation complete
+
+    ;Multiply ratio^(1/Years)
+    mov ebx, ratio
+    mul ebx                         ; eax = ratio * ratio (1/Years)
+
+    ;Final CAGR Calculation: CAGR = result - scalefactor
+    sub eax, scale_factor
+    mov cagr, eax
+
+    mov edx, OFFSET calcCAGRMsg
+    call WriteString
+    mov eax, cagr
     call WriteDec
-    mov edx, OFFSET percentSign
-    call WriteString
     call Crlf
     
     mov edx, OFFSET continueMsgPrompt
