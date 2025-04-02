@@ -84,7 +84,7 @@ INCLUDE IRVINE32.INC
              BYTE "6. Return to Main Menu", 0Dh, 0Ah
              BYTE "Enter your choice (1-6): ", 0
     calcPromptValue     BYTE "Enter Your Portfolio Value: ", 0
-    calcPromptRate      BYTE "Enter annual interest rate (as decimal, e.g., 0.05 for 5%): ", 0
+    calcPromptRate      BYTE "Enter annual interest rate (as decimal, e.g. 5 for 0.05%): ", 0
     calcPromptYears     BYTE "Enter number of years: ", 0
     calcPromptFees      BYTE "Enter transaction fees: $", 0
     calcPromptCompound  BYTE "Enter number of times interest is compounded per year: ", 0
@@ -1085,9 +1085,11 @@ sum_loop:
 no_purchases:
     call Crlf
     mov edx, OFFSET noPurchaseMsg
+    call WriteString
     call ReadChar
     call Crlf
     ret
+
 calc_roi:
     mov edx, OFFSET calcPercentMsg
     call WriteString
