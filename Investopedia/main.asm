@@ -70,7 +70,7 @@ INCLUDE IRVINE32.INC
     aiSuccess BYTE "Investment added successfully!", 0Dh, 0Ah, 0
 
     riPage BYTE "Investment Details", 0Dh, 0Ah, 0
-    riPromptName BYTE "Enter investment amount to remove: ", 0
+    riPromptName BYTE "Enter investment amount to remove (-999 to return): ", 0
     riSuccess BYTE "Investment removed successfully!", 0Dh, 0Ah, 0
     riError BYTE "Investment not found!", 0Dh, 0Ah, 0
     delValue DWORD ?
@@ -93,7 +93,7 @@ INCLUDE IRVINE32.INC
     calcPromptII        BYTE "Enter your initial investment: ", 0
     calcResultMsg       BYTE "Calculation Result: $", 0
     calcPercentMsg      BYTE "Calculation Result: ", 0
-    calcFutureMsg       BYTE "Your Future Value: $", 0Ah, 0Dh, 0
+    calcFutureMsg       BYTE "Your Future Value: $", 0
     calcProfitLossMsg   BYTE "The total profit or loss: $", 0Ah, 0Dh, 0
     calcInitialInvestmentMsg    BYTE "Your initial investment is: RM", 0Ah, 0Dh, 0
     calcCAGRMsg         BYTE "The Compound Annual Growth Rate: RM", 0Ah, 0Dh, 0
@@ -185,9 +185,7 @@ INCLUDE IRVINE32.INC
     numYears REAL8 0.0
     ;fees REAL8 0.0
     compounds DWORD 0
-    principalAmount REAL8 0.0
     portfolioValue REAL8 0.0
-    initialInvestment REAL8 0.0
     profitLoss REAL8 0.0
     promptPurchase BYTE "Do you want to see its listings? (Y to confirm): ", 0
     userConfirm BYTE ?
@@ -213,7 +211,30 @@ INCLUDE IRVINE32.INC
     purchaseHistory DWORD 10 DUP(0)
     purchaseCount DWORD 0
     historyMsg BYTE "Purchase History: ", 0Dh, 0Ah, 0
-    
+
+    ;Data for compound interest calc
+    principalAmount dword ?
+	numCompound dword ?
+	compoundInterest dword ?
+	scale2 dword 100
+
+    promptPrincipal BYTE "Enter principal amount: ", 0
+	promptRate BYTE "Enter rate: ", 0
+	promptYear BYTE "Enter year: " ,0
+	promptTimes BYTE "Enter num of compound: ", 0
+	promptCI BYTE "Compount Interest: ", 0
+
+    ;Data for ROI calc
+    profit dword ?
+    initialInvest dword ?
+    roi dword ?
+
+    promptProfit byte "Enter the profit amount: ", 0
+    promptInitInvest byte "Enter the initial investment amount: ", 0
+    displayROI byte "Return On Investment: ", 0
+    errDivZero byte "Error: Cannot divide by zero!", 0
+
+
 .code
 ; Validation procedures
 ValidateName PROC USES esi ecx
@@ -656,6 +677,7 @@ display_history:
     mov edx, OFFSET riPromptName
     call WriteString
     call ReadInt
+
     mov delValue, eax
     jmp delete_investment
 
@@ -962,6 +984,7 @@ purchase_process ENDP
 
 CalculatorMenu PROC
 calculator_loop:
+    call Clrscr
     mov edx, OFFSET calcMenu
     call WriteString
     
@@ -1083,19 +1106,54 @@ sum_loop:
     jmp calculator_loop
 
 no_purchases:
-    call Crlf
+    
+    mov edx, 0
     mov edx, OFFSET noPurchaseMsg
+    call WriteString
+    call Crlf
+    mov edx, OFFSET enterMsg
     call WriteString
     call ReadChar
     call Crlf
-    ret
+    jmp calculator_loop
 
 calc_roi:
-    mov edx, OFFSET calcPercentMsg
+
+    ; Input profit
+    mov edx, offset promptProfit
     call WriteString
-    mov eax, 15
-    call WriteDec
-    mov edx, OFFSET percentSign
+    call ReadInt
+    mov profit, eax
+
+    ; Input initial investment
+    mov edx, offset promptInitInvest
+    call WriteString
+    call ReadInt
+    mov initialInvest, eax
+
+    ; Check for division by zero
+    cmp eax, 0
+    je division_error
+
+    ; Calculate ROI = (profit * 100) / initialInvest
+    mov eax, profit
+    imul eax, 100       ; Multiply profit by 100 first
+    cdq                 ; Sign-extend for division
+    idiv initialInvest  ; ROI = (profit*100)/investment
+    mov roi, eax
+
+    ; Display result
+    mov edx, offset displayROI
+    call WriteString
+    mov eax, roi
+    call WriteInt       ; Use WriteInt to handle negatives
+    mov al, '%'
+    call Writechar
+    call Crlf
+    jmp exit_calc
+
+division_error:
+    mov edx, offset errDivZero
     call WriteString
     call Crlf
     
@@ -1161,12 +1219,66 @@ cagr_loop:
     jmp calculator_loop
     
 calc_compound:
-    mov edx, OFFSET calcResultMsg
-    call WriteString
-    mov eax, 2000   
-    call WriteDec
-    call Crlf
     
+    mov edx, offset promptPrincipal
+	call WriteString
+	call ReadInt
+	mov principalAmount, eax
+
+	mov edx, offset promptRate
+	call WriteString
+	call ReadInt
+	mov rate, eax
+
+	mov edx, offset promptTimes
+	call WriteString
+	call ReadInt
+	mov numCompound, eax
+	
+	mov eax, numCompound	;eax = 12
+	imul eax, 100			;eax = 1200
+	mov numCompound, eax	;numCompound = 1200
+
+	mov edx, offset promptYear
+	call WriteString
+	call ReadInt
+	mov years, eax
+
+	mov eax, rate			;eax = 5
+	mul scale			;eax = 5 * 10000 = 50000
+	div numCompound	;eax = 50000 / 1200
+	add eax, scale			;eax = 41 + 10000 = 10041
+	mov ebx, eax	;ebx = 10041
+
+	
+	mov eax, years	;eax = 10
+	mul numCompound	;eax = eax * numCompound = 10 * 1200 = 12000
+	div scale2			;eax = 12000 / 100 = 120
+	mov ecx, eax	;ecx = eax
+	mov eax, ebx	;eax = 10000
+
+compound_loop:
+	test ecx, ecx
+	jz done_exp
+
+	mul ebx			;eax = eax * ebx = 10041 * 10041
+	div scale		;eax = eax / scale 
+
+	loop compound_loop
+
+display_CI:
+	mul principalAmount
+	div scale
+
+	mov compoundInterest, eax
+
+	mov edx, OFFSET promptCI
+	call WriteString
+	mov eax, compoundInterest
+	call WriteDec
+	call Crlf
+    
+exit_calc:
     mov edx, OFFSET continueMsgPrompt
     call WriteString
     call ReadChar
