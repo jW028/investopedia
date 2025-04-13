@@ -84,22 +84,22 @@ INCLUDE IRVINE32.INC
              BYTE "6. Return to Main Menu", 0Dh, 0Ah
              BYTE "Enter your choice (1-6): ", 0
     calcPromptValue     BYTE "Enter Your Portfolio Value: ", 0
-    calcPromptRate      BYTE "Enter annual interest rate (as decimal, e.g. 5 for 0.05%): ", 0
+    calcPromptRate      BYTE "Enter annual interest rate (as decimal, e.g. 5 for 5%): ", 0
     calcPromptYears     BYTE "Enter number of years: ", 0
     calcPromptFees      BYTE "Enter transaction fees: $", 0
-    calcPromptCompound  BYTE "Enter number of times interest is compounded per year: ", 0
-    calcPromptPrincipal BYTE "Enter principal amount: $", 0
+    
+    
     calcPromptROI       BYTE "Return of Investment = RM ", 0Ah, 0Dh, 0
     calcPromptII        BYTE "Enter your initial investment: ", 0
     calcResultMsg       BYTE "Calculation Result: $", 0
     calcPercentMsg      BYTE "Calculation Result: ", 0
     calcFutureMsg       BYTE "Your Future Value: $", 0
     calcProfitLossMsg   BYTE "The total profit or loss: $", 0Ah, 0Dh, 0
-    calcInitialInvestmentMsg    BYTE "Your initial investment is: RM", 0Ah, 0Dh, 0
-    calcCAGRMsg         BYTE "The Compound Annual Growth Rate: RM", 0Ah, 0Dh, 0
+    calcInitialInvestmentMsg    BYTE "Your initial investment is: ", 0
+    
     percentSign         BYTE "%", 0
     calcTransCost       DWORD 500
-    calcBrokeFees           DWORD 1000
+    calcBrokeFees       DWORD 1000
     noPurchaseMsg       BYTE "There are no recent purchases.", 0Ah, 0Dh, 0
 
     profit_loss         DWORD ?
@@ -212,28 +212,41 @@ INCLUDE IRVINE32.INC
     purchaseCount DWORD 0
     historyMsg BYTE "Purchase History: ", 0Dh, 0Ah, 0
 
-    ;Data for compound interest calc
-    principalAmount dword ?
-	numCompound dword ?
-	compoundInterest dword ?
-	scale2 dword 100
-
-    promptPrincipal BYTE "Enter principal amount: ", 0
-	promptRate BYTE "Enter rate: ", 0
-	promptYear BYTE "Enter year: " ,0
-	promptTimes BYTE "Enter num of compound: ", 0
-	promptCI BYTE "Compount Interest: ", 0
+    
 
     ;Data for ROI calc
     profit dword ?
     initialInvest dword ?
     roi dword ?
 
+    ;Data for CAGR calc
+    calcPromptInitialVal BYTE "Enter Initial Value: ", 0
+    calcPromptFinalVal BYTE "Enter Final Value: ", 0
+    calcCAGRMsg         BYTE "The Compound Annual Growth Rate: ", 0
+    finalValue DWORD ?
+    initialValue DWORD ?
+    real100 REAL4 100.0
+    resultScaled DWORD ?
+    intPart DWORD ?
+    decPart DWORD ?
+
+
     promptProfit byte "Enter the profit amount: ", 0
     promptInitInvest byte "Enter the initial investment amount: ", 0
     displayROI byte "Return On Investment: ", 0
     errDivZero byte "Error: Cannot divide by zero!", 0
 
+
+    ;Data for compound interest calc
+    
+    principalAmount dword ?
+	numCompound dword ?
+	compoundInterest dword ?
+
+    dot BYTE ".", 0
+    calcPromptPrincipal BYTE "Enter principal amount: $", 0
+    calcPromptCompound  BYTE "Enter number of times interest is compounded per year: ", 0
+	promptCI BYTE "Compount Interest: ", 0
 
 .code
 ; Validation procedures
@@ -1164,54 +1177,87 @@ division_error:
     jmp calculator_loop
     
 calc_cagr:
-    ;Prompt for Total Profit
-    mov edx, OFFSET calcPromptYears
+    ;Prompt for initial value
+    mov edx, OFFSET calcPromptInitialVal
     call WriteString
     call ReadInt
-    mov profit_loss, eax
-
-    ;Prompt for initial investment
-    mov edx, OFFSET calcInitialInvestmentMsg
-    call WriteString
-    call ReadInt
-    mov initial_investment, eax
+    mov initialValue, eax
     
+    ;Prompt for Final Value
+    mov edx, OFFSET calcPromptFinalVal
+    call WriteString
+    call ReadInt
+    mov finalValue, eax
+
     ;Prompt for Years
     mov edx, OFFSET calcPromptYears
     call WriteString
     call ReadInt
     mov years, eax
 
-    ;Compute (Total Profit / Initial Investment)
-    mov eax, profit_loss
-    mov ebx, initial_investment
-    mul scale_factor                ; Multiply by scale factor
-    div ebx                         ; eax = (profit_loss * scale_factor)/ initial_investment
+    ;Calculation
+    fild finalValue
+    fild initialValue
+    fdiv                ; FV / IV
 
-    mov ratio, eax
+    fld1
+    fild years
+    fdiv                ; 1 / years
 
-    ; Compute (1/Years)
-    mov ecx, years
-    mov eax, scale_factor           ; Start with base value
+    fxch
+    fyl2x               ; log2(base) * exponent
+    fld st(0)
+    frndint     
+    fsub st(1), st(0)   ; split into integer & fraction
+    fxch
+    f2xm1
+    fld1
+    fadd
+    fscale
+    fstp st(1)
 
-cagr_loop:
-    div ecx                         ; eax = ecx / Years
-    loop cagr_loop                  ; Repeat until exponentiation complete
+    fld1
+    fsub                ; CAGR - 1
 
-    ;Multiply ratio^(1/Years)
-    mov ebx, ratio
-    mul ebx                         ; eax = ratio * ratio (1/Years)
+    ;multiply by 10000 (to keep 2 decimal places when rounding)
+    fld real100         ; ST(0) = 100.0
+    fmul                ; CAGR * 100
+    fld real100
+    fmul                ; CAGR * 100
+    frndint             ; Round to nearest integer
+    fist resultScaled   ; Store rounded int
 
-    ;Final CAGR Calculation: CAGR = result - scalefactor
-    sub eax, scale_factor
-    mov cagr, eax
+    ;split into intPart.decPart
+    mov eax, resultScaled
+    mov ebx, 100
+    mov edx, 0
+    div ebx             ; EAX = intPart, EDX = decPart
 
+    mov intPart, eax
+    mov decPart, edx
+
+    ;output CAGR
     mov edx, OFFSET calcCAGRMsg
     call WriteString
-    mov eax, cagr
+
+    mov eax, intPart
     call WriteDec
+
+    mov al, '.'
+    call WriteChar
+
+    mov eax, decPart
+    cmp eax, 10
+    jae SkipZeroPercent
+    mov al, '0'
+    call WriteChar
+
+SkipZeroPercent:
+    call WriteDec
+    mov al, '%'
+    call WriteChar
     call Crlf
-    
+
     mov edx, OFFSET continueMsgPrompt
     call WriteString
     call ReadChar
@@ -1220,63 +1266,92 @@ cagr_loop:
     
 calc_compound:
     
-    mov edx, offset promptPrincipal
-	call WriteString
-	call ReadInt
-	mov principalAmount, eax
+    ; Input Principal
+    mov edx, OFFSET calcPromptPrincipal
+    call WriteString
+    call ReadInt
+    mov principalAmount, eax
 
-	mov edx, offset promptRate
-	call WriteString
-	call ReadInt
-	mov rate, eax
+    ; Input Rate
+    mov edx, OFFSET calcPromptRate
+    call WriteString
+    call ReadInt
+    mov rate, eax
 
-	mov edx, offset promptTimes
-	call WriteString
-	call ReadInt
-	mov numCompound, eax
-	
-	mov eax, numCompound	;eax = 12
-	imul eax, 100			;eax = 1200
-	mov numCompound, eax	;numCompound = 1200
+    ; Input Num of Compound
+    mov edx, OFFSET calcPromptCompound
+    call WriteString
+    call ReadInt
+    mov numCompound, eax
 
-	mov edx, offset promptYear
-	call WriteString
-	call ReadInt
-	mov years, eax
+    ; Input Years
+    mov edx, OFFSET calcPromptYears
+    call WriteString
+    call ReadInt
+    mov years, eax
 
-	mov eax, rate			;eax = 5
-	mul scale			;eax = 5 * 10000 = 50000
-	div numCompound	;eax = 50000 / 1200
-	add eax, scale			;eax = 41 + 10000 = 10041
-	mov ebx, eax	;ebx = 10041
+    ; Compound Interest Calculation = P * (1 + r/n)^(n * t)
 
-	
-	mov eax, years	;eax = 10
-	mul numCompound	;eax = eax * numCompound = 10 * 1200 = 12000
-	div scale2			;eax = 12000 / 100 = 120
-	mov ecx, eax	;ecx = eax
-	mov eax, ebx	;eax = 10000
+    ; Compute (1 + r / n)
+    fild rate
+    fld real100
+    fdivp st(1), st(0)  ; rate / 100
 
-compound_loop:
-	test ecx, ecx
-	jz done_exp
+    fild numCompound
+    fdiv                ; (rate / 100) / n
 
-	mul ebx			;eax = eax * ebx = 10041 * 10041
-	div scale		;eax = eax / scale 
+    fld1
+    fadd                ; (1 + r/n)
 
-	loop compound_loop
+    ; Compute exponent: n * t
+    fild numCompound
+    fild years
+    fmul                ; n * t
 
-display_CI:
-	mul principalAmount
-	div scale
+    ; Stack: ST(0)=exponent, ST(1)=base
+    fxch                ; ST(0)=base, ST(1)=exponent
+    call Pow            ; ST(0) = (1 + r/n) ^ (n * t)
 
-	mov compoundInterest, eax
+    ; Multiple by Principal
+    fild principalAmount
+    fmul                ; P * (1 + r/n) ^ (n * t)
 
-	mov edx, OFFSET promptCI
-	call WriteString
-	mov eax, compoundInterest
-	call WriteDec
-	call Crlf
+    ; Scale to 2 decimal places and convert to int
+    fld real100
+    fmul
+    frndint
+    fist compoundInterest
+
+    ; Format to 2 decimal place
+    mov eax, compoundInterest
+    mov ebx, 100
+    xor edx, edx
+    div ebx
+
+    mov intPart, eax
+    mov decPart, edx
+
+    ; Display result
+    mov edx, OFFSET promptCI
+    call WriteString
+
+    mov eax, intPart
+    call WriteDec
+      
+    mov edx, OFFSET dot
+    call WriteString
+
+    mov eax, decPart
+    cmp eax, 10
+    jae skipZero
+    mov al, '0'
+    call WriteChar
+    call Crlf
+
+SkipZero:
+    mov eax, decPart
+    call WriteDec
+    call Crlf
     
 exit_calc:
     mov edx, OFFSET continueMsgPrompt
@@ -1285,6 +1360,7 @@ exit_calc:
     call Crlf
     jmp calculator_loop
     
+
 exit_calculator:
     ret
 CalculatorMenu ENDP
@@ -1330,6 +1406,21 @@ ReadCharWithEcho PROC
     mov al, bl
     ret
 ReadCharWithEcho ENDP
+
+; Power Function
+Pow PROC
+    fyl2x               ; ST(0) = y * log2(x)
+    fld ST(0)           ; Duplicate
+    frndint             ; Get integer part
+    fsub ST(1), ST(0)   ; Subtract integer part -> frac in ST(1)
+    fxch                ; ST(0)=frac, ST(1)=int
+    f2xm1               ; 2^frac - 1
+    fld1
+    fadd                ; 2^frac
+    fscale              ; * 2^int
+    fstp ST(1)          ; Clean up
+    ret
+POW ENDP
 
 main PROC
     call Registration
