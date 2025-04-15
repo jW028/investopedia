@@ -14,8 +14,10 @@ INCLUDE IRVINE32.INC
 
     userDatabase   User MAX_USERS DUP(<>)
     userCount      DWORD 0
-
-    registrationTitle BYTE "INVESTOPEDIA - USER REGISTRATION", 0Dh, 0Ah, 0
+                        
+    registrationTitle BYTE "||====================================||", 0Dh, 0Ah,
+                           "||  INVESTOPEDIA - USER REGISTRATION  ||", 0Dh, 0Ah, 
+                           "||====================================||", 0Dh, 0Ah, 0
     promptName        BYTE "Enter your full name: ", 0
     promptEmail       BYTE "Enter your email address: ", 0
     promptPassword    BYTE "Enter your password: ", 0
@@ -270,7 +272,7 @@ check_length:
 
 invalid_name:
     mov edx, OFFSET errorNameTooShort
-    call WriteString
+    call InvalidTextDisplay
     mov eax, 0  ; Invalid
     ret
 ValidateName ENDP
@@ -308,7 +310,7 @@ check_email_flags:
 
 invalid_email:
     mov edx, OFFSET errorEmailInvalid
-    call WriteString
+    call InvalidTextDisplay
     mov eax, 0  ; Invalid
     ret
 ValidateEmail ENDP
@@ -333,7 +335,7 @@ check_pass_length:
 
 invalid_password:
     mov edx, OFFSET errorPasswordShort
-    call WriteString
+    call InvalidTextDisplay
     mov eax, 0  ; Invalid
     ret
 ValidatePassword ENDP
@@ -401,8 +403,10 @@ registration_start:
     call Clrscr
     mov edx, OFFSET registrationTitle
     call WriteString
+    call Crlf
 
     ; Name input
+input_name:
     mov edx, OFFSET promptName
     call WriteString
     mov edx, OFFSET inputName
@@ -410,9 +414,10 @@ registration_start:
     call ReadString
     call ValidateName
     cmp eax, 0
-    je registration_start
+    je input_name
 
     ; Email input
+input_email:
     mov edx, OFFSET promptEmail
     call WriteString
     mov edx, OFFSET inputEmail
@@ -420,19 +425,21 @@ registration_start:
     call ReadString
     call ValidateEmail
     cmp eax, 0
-    je registration_start
+    je input_email
     
 
     ; Password input
+input_pass:
     mov edx, OFFSET promptPassword
     call WriteString
     mov edx, OFFSET inputPassword
     call ReadPasswordWithMask
     call ValidatePassword
     cmp eax, 0
-    je registration_start
+    je input_pass
 
     ; Confirm password input
+input_confirm_pass:
     mov edx, OFFSET confirmPassword
     call WriteString
     mov edx, OFFSET confirmInputPass
@@ -446,8 +453,8 @@ registration_start:
     je password_match
 
     mov edx, OFFSET errorPasswordMismatch
-    call WriteString
-    jmp registration_start
+    call InvalidTextDisplay
+    jmp input_pass
 
 password_match:
     ; Store user in database
@@ -477,6 +484,7 @@ password_match:
     call WriteString
     call WaitForEnter
     ret
+
 Registration ENDP
 
 ; Login Procedure
@@ -1421,6 +1429,15 @@ Pow PROC
     fstp ST(1)          ; Clean up
     ret
 POW ENDP
+
+InvalidTextDisplay PROC
+    mov eax, 0Ch
+    call SetTextColor
+    call WriteString
+    mov eax, 07h
+    call SetTextColor
+    ret
+InvalidTextDisplay ENDP
 
 main PROC
     call Registration
