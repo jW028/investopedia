@@ -127,7 +127,7 @@ INCLUDE IRVINE32.INC
     delValue DWORD ?
 
     calPage           BYTE "||====================================||", 0Dh, 0Ah,
-                           "||           CALCULATOR               ||", 0Dh, 0Ah, 
+                           "||             CALCULATOR             ||", 0Dh, 0Ah, 
                            "||====================================||", 0Dh, 0Ah, 0
     calcMenu BYTE "1. Calculate Future Value", 0Dh, 0Ah
              BYTE "2. Calculate Profit/Loss", 0Dh, 0Ah
@@ -301,7 +301,7 @@ INCLUDE IRVINE32.INC
                               "3. Index Funds", 0Dh, 0Ah,
                               "4. All Investments", 0Dh, 0Ah,
                               "Enter your choice (1-4): ", 0
-    riPromptChoice BYTE "Enter investment number or name to sell: ", 0
+    riPromptChoice BYTE "Enter investment number or name to sell (999 to return): ", 0
     invalidNumberMsg BYTE "Invalid investment number. Try again.", 0Dh, 0Ah, 0
     noMatchingInvestments BYTE "No matching investments found.", 0Dh, 0Ah, 0
     viewOption DWORD ?
@@ -1171,7 +1171,7 @@ menu_loop:
     je settings_menu
 
     mov edx, OFFSET invalidMsg
-    call WriteString
+    call InvalidTextDisplay
     call WaitForEnter
     jmp menu_loop
 
@@ -1184,8 +1184,6 @@ remove_investment:
     jmp menu_loop
 
 calculator:
-    mov edx, OFFSET calPage
-    call WriteString
     call CalculatorMenu
     jmp menu_loop
 
@@ -1672,6 +1670,7 @@ skip_display:
     mov ecx, 50
     call ReadString
     
+
     ; Check if input is a number
     call IsNumber
     cmp eax, 1
@@ -1721,6 +1720,8 @@ remove_by_number:
     call ParseInt
     
     ; Check if number is valid
+    cmp eax, 999
+    je return_back
     cmp eax, 1
     jl invalid_number
     cmp eax, displayCount
@@ -1824,13 +1825,13 @@ invalid_number:
     
 invalid_quantity:
     mov edx, OFFSET invalidMsg
-    call WriteString
+    call InvalidTextDisplay
     call WaitForEnter
     ret
     
 no_investments:
     mov edx, OFFSET noPurchaseMsg
-    call WriteString
+    call InvalidTextDisplay
     call WaitForEnter
     ret
     
@@ -1878,6 +1879,10 @@ last_investment:
     call SuccessTextDisplay
     call WaitForEnter
     ret
+
+return_back:
+    ret
+
 RemoveInvestment ENDP
 
 ; Helper to check if a string is a number
@@ -2401,7 +2406,7 @@ investMenu:
 
 
     mov edx, OFFSET invalidMsg
-    call WriteString
+    call InvalidTextDisplay
     mov edx, OFFSET enterMsg
     call ReadChar
     jmp investMenu
@@ -2459,7 +2464,8 @@ display_stocks_list:
 
 invalid_stock_choice:
     mov edx, OFFSET invalidMsg
-    call WriteString
+    call InvalidTextDisplay
+    call WaitForEnter
     jmp display_stocks_list
 
 displayInvest2:
@@ -2512,7 +2518,7 @@ display_bonds_list:
 
 invalid_bond_choice:
     mov edx, OFFSET invalidMsg
-    call WriteString
+    call InvalidTextDisplay
     jmp display_bonds_list
 
 displayInvest3:
@@ -2565,7 +2571,7 @@ display_index_list:
 
 invalid_index_choice:
     mov edx, OFFSET invalidMsg
-    call WriteString
+    call InvalidTextDisplay
     jmp display_index_list
 AddInvestment ENDP
 
@@ -2664,6 +2670,8 @@ purchase_process ENDP
 CalculatorMenu PROC
 calculator_loop:
     call Clrscr
+    mov edx, OFFSET calPage
+    call WriteString
     mov edx, OFFSET calcMenu
     call WriteString
     
@@ -2684,7 +2692,8 @@ calculator_loop:
     je exit_calculator
 
     mov edx, OFFSET invalidMsg
-    call WriteString
+    call InvalidTextDisplay
+    call WaitForEnter
     jmp calculator_loop
 
 calc_future_value:
@@ -3054,7 +3063,7 @@ settings_loop:
     
     ; Invalid option
     mov edx, OFFSET invalidMsg
-    call WriteString
+    call InvalidTextDisplay
     call WaitForEnter
     jmp settings_loop
     
