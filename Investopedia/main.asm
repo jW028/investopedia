@@ -20,7 +20,7 @@ INCLUDE IRVINE32.INC
     userPageTitle BYTE "||====================================||", 0Dh, 0Ah,
                        "||          INVESTOPEDIA              ||", 0Dh, 0Ah, 
                        "||====================================||", 0Dh, 0Ah, 0
- userPageOptions BYTE "1. Register New Account", 0Dh, 0Ah,
+    userPageOptions BYTE "1. Register New Account", 0Dh, 0Ah,
                          "2. Login", 0Dh, 0Ah,
                          "3. Reset Password", 0Dh, 0Ah,
                          "4. Exit", 0Dh, 0Ah, 0Dh, 0Ah,
@@ -52,10 +52,10 @@ INCLUDE IRVINE32.INC
     promptLoginPass   BYTE "Enter your password: ", 0
     loginSuccessMsg   BYTE "Login successful!", 0Dh, 0Ah, 0
     loginFailMsg      BYTE "Invalid email or password.", 0Dh, 0Ah, 0
-    loginOptionsMsg BYTE "1. Reset Password", 0Dh, 0Ah,
-                         "2. Try Again", 0Dh, 0Ah,
-                         "3. Register New Account", 0Dh, 0Ah,
-                         "Enter your choice (1-3): ", 0
+    loginOptionsMsg    BYTE "1. Change Password", 0Dh, 0Ah,
+                        "2. Try Again", 0Dh, 0Ah,
+                        "3. Register New Account", 0Dh, 0Ah,
+                        "Enter your choice (1-3): ", 0
     changePassTitle   BYTE "||====================================||", 0Dh, 0Ah,
                            "||        CHANGE PASSWORD             ||", 0Dh, 0Ah, 
                            "||====================================||", 0Dh, 0Ah, 0
@@ -64,7 +64,15 @@ INCLUDE IRVINE32.INC
     promptConfirmNewPass BYTE "Confirm your new password: ", 0
     passChangeSuccess BYTE "Password changed successfully!", 0Dh, 0Ah, 0
     passChangeFailure BYTE "Password change failed. Old password incorrect.", 0Dh, 0Ah, 0
-    
+    otpValue        DWORD ?          
+    otpBuffer       BYTE 10 DUP(0)    
+    otpPrompt       BYTE "A verification code has been sent.", 0Dh, 0Ah,
+                         "Enter the 6-digit code: ", 0
+    otpInvalidMsg   BYTE "Invalid verification code. Please try again.", 0Dh, 0Ah, 0
+    otpSuccessMsg   BYTE "Email verified successfully!", 0Dh, 0Ah, 0
+    otpEmailMsg     BYTE "Your verification code is: ", 0
+    passwordReuseError BYTE "New password cannot be the same as your current password.", 0Dh, 0Ah, 0
+
     inputOldPass      BYTE MAX_PASSWORD_LENGTH DUP(0)
     inputNewPass      BYTE MAX_PASSWORD_LENGTH DUP(0)
     confirmNewPass    BYTE MAX_PASSWORD_LENGTH DUP(0)
@@ -541,13 +549,13 @@ user_page_start:
     call ReadInt
     call Crlf
     
-    cmp eax, 1
+    cmp eax, 1  
     je go_to_registration
-    cmp eax, 2
+    cmp eax, 2  
     je go_to_login
-    cmp eax, 3
+    cmp eax, 3 
     je go_to_reset_password
-    cmp eax, 4
+    cmp eax, 4  
     je exit_program
     
     ; Invalid option
@@ -970,6 +978,7 @@ WaitForEnter PROC
 WaitForEnter ENDP
 
 ChangePassword PROC
+change_pass_start:    
     call Clrscr
     mov edx, OFFSET changePassTitle
     call WriteString
@@ -1013,39 +1022,74 @@ user_found:
     ; Save the user record pointer for later use
     push esi    ; Save user record pointer
     
-    ; Get old password
-    mov edx, OFFSET promptOldPass
+    ; Generate OTP first for verification
+    call GenerateOTP
+    
+    call Crlf
+    mov edx, OFFSET otpEmailMsg
     call WriteString
-    mov edx, OFFSET inputOldPass
-    call ReadPasswordWithMask
+    mov eax, otpValue
+    call WriteDec
+    call Crlf
+    call Crlf
     
-    ; Verify old password
-    lea edi, [esi + MAX_NAME_LENGTH + MAX_EMAIL_LENGTH]  ; Password comes after email
-    mov ebx, OFFSET inputOldPass
+    mov edx, OFFSET otpPrompt
+    call WriteString
+    mov edx, OFFSET otpBuffer
+    mov ecx, 10
+    call ReadString
     
-check_password_loop:
-    mov al, [edi]
-    mov ah, [ebx]
-    cmp al, ah
-    jne old_pass_incorrect
-    cmp al, 0
-    je old_pass_correct
-    inc edi
-    inc ebx
-    jmp check_password_loop
+    mov edx, OFFSET otpBuffer
+    call ParseDecimal
     
-old_pass_correct:
-    ; Get new password
+    ; Compare with generated OTP
+    cmp eax, otpValue
+    jne otp_invalid
+    
+    ; OTP validation successful
+    mov edx, OFFSET otpSuccessMsg
+    call SuccessTextDisplay
+    call Crlf
+    
+    ; Now prompt for new password
     mov edx, OFFSET promptNewPass
     call WriteString
     mov edx, OFFSET inputNewPass
     call ReadPasswordWithMask
+    
+    ; Check if new password is same as current password in database
+    push esi
+    lea edi, [esi + MAX_NAME_LENGTH + MAX_EMAIL_LENGTH]  ; Current password location in database
+    mov ebx, OFFSET inputNewPass
+    
+check_password_reuse:
+    mov al, [edi]
+    mov ah, [ebx]
+    cmp al, ah
+    jne passwords_different
+    cmp al, 0
+    je password_reused
+    inc edi
+    inc ebx
+    jmp check_password_reuse
+    
+password_reused:
+    pop esi
+    mov edx, OFFSET passwordReuseError
+    call InvalidTextDisplay
+    call Crlf  ; Add a newline for better visibility
+    call WaitForEnter  ; Wait for user to acknowledge the error
+    jmp user_found  ; Try again with a different password
+    
+passwords_different:
+    pop esi
     
     ; Copy string from inputNewPass to inputPassword for validation
     push esi
     mov edi, OFFSET inputNewPass
     mov esi, OFFSET inputPassword
     mov ecx, MAX_PASSWORD_LENGTH
+    
 copy_password_loop:
     mov al, [edi]
     mov [esi], al
@@ -1062,7 +1106,7 @@ end_copy_password:
     
     call ValidatePassword
     cmp eax, 0
-    je old_pass_correct  ; If invalid, try again
+    je user_found  ; If invalid, try again from OTP step
     
     ; Confirm new password
     mov edx, OFFSET promptConfirmNewPass
@@ -1111,14 +1155,13 @@ passwords_mismatch:
     pop ebx     ; Clean up the stack if passwords don't match
     mov edx, OFFSET errorPasswordMismatch
     call InvalidTextDisplay
-    jmp old_pass_correct  ; Try again
+    jmp user_found  ; Try again from OTP step
     
-old_pass_incorrect:
-    pop ebx     ; Clean up the stack if old password is incorrect
-    mov edx, OFFSET passChangeFailure
-    call WriteString
+otp_invalid:
+    mov edx, OFFSET otpInvalidMsg
+    call InvalidTextDisplay
     call WaitForEnter
-    ret
+    jmp change_pass_start  ; Return to the beginning of password change
     
 change_pass_failed:
     mov edx, OFFSET loginFailMsg
@@ -1126,6 +1169,23 @@ change_pass_failed:
     call WaitForEnter
     ret
 ChangePassword ENDP
+
+GenerateOTP PROC
+    ; Get system time for seed
+    call GetMseconds
+    
+    ; Use the current time as a seed
+    mov ebx, eax
+    
+    ; Generate a random number between 100000 and 999999
+    mov eax, 900000  ; Range size
+    call RandomRange
+    add eax, 100000  ; Minimum value
+    
+    ; Store the OTP
+    mov otpValue, eax
+    ret
+GenerateOTP ENDP
 
 ; Renamed to avoid duplicate procedure
 AdminLogin PROC
@@ -1682,6 +1742,41 @@ end_check:
     mov eax, 1
     ret
 IsNumber ENDP
+
+ParseDecimal PROC
+    mov esi, edx    ; EDX contains the address of the string
+    mov eax, 0      ; Initialize result to 0
+    
+parse_decimal_loop:
+    mov bl, [esi]   ; Get current character
+    cmp bl, 0       ; Check for end of string
+    je parse_decimal_done
+    
+    ; Check if character is a digit
+    cmp bl, '0'
+    jl parse_decimal_done
+    cmp bl, '9'
+    jg parse_decimal_done
+    
+    ; Convert character to digit
+    sub bl, '0'
+    
+    ; Multiply current result by 10
+    mov ecx, eax
+    shl eax, 3      ; EAX = EAX * 8
+    add eax, ecx    ; EAX = EAX * 9
+    add eax, ecx    ; EAX = EAX * 10
+    
+    ; Add new digit
+    movzx ebx, bl
+    add eax, ebx
+    
+    inc esi         ; Move to next character
+    jmp parse_decimal_loop
+    
+parse_decimal_done:
+    ret
+ParseDecimal ENDP
 
 ; Helper to parse integer from string
 ParseInt PROC
@@ -2331,82 +2426,59 @@ calculator_loop:
     jmp calculator_loop
 
 calc_future_value:
-    ; Prompt for portfolio value
     mov edx, OFFSET calcPromptValue
     call WriteString
     call ReadInt
     mov totalPortfolioValue, eax
-
-    ; Prompt for annual interest rate
+    
     mov edx, OFFSET calcPromptRate
     call WriteString
     call ReadInt
     mov rate, eax
 
-     ; Prompt for number of years
+    mov eax, rate
+    imul eax, 100
+    mov rate, eax
+
     mov edx, OFFSET calcPromptYears
     call WriteString
     call ReadInt
     mov years, eax
 
-    ; Future Value Calculation: FV = PV * (1 + r)^t
+    mov eax, rate
+    add eax, scale
+    mov ebx, eax
 
-    ; Compute (1+r)
-    fild rate                      ; Load rate as floating-point
-    fld real100                    ; Load 100.0
-    fdivp st(1), st(0)             ; rate / 100
-    fld1
-    fadd                           ; (1 + r)
+    mov eax, scale
+    mov ecx, years
+    
 
-    ; Compute exponent: t (years)
-    fild years                     ; Load years as floating-point
+exp_loop:
+    test ecx, ecx
+    jz done_exp
 
-    ; Stack: ST(0)=exponent, ST(1)=base
-    fxch						   ; Exchange ST(0) and ST(1)
-    call Pow                       ; ST(0) = (1 + r) ^ t
+    mul ebx
+    div scale
 
-    ; Multiply by PV
-    fild totalPortfolioValue
-    fmul						   ; PV * (1 + r) ^ t
+    loop exp_loop
 
-    ; Scale to 2 decimal places and convert to int
-    fld real100
-    fmul
-    frndint
-    fist futureValue
+done_exp:
+    mul totalPortfolioValue
+    div scale
 
-    ; Format to 2 decimal places
-    mov eax, futureValue
-    mov ebx, 100
-    xor edx, edx
-    div ebx
+    mov futureValue, eax
 
-    mov intPart, eax
-    mov decPart, edx
-
-    ; Display the result
     mov edx, OFFSET calcFutureMsg
     call WriteString
-    mov eax, intPart
+    mov eax, futureValue
     call WriteDec
-    
-    mov edx, OFFSET dot
-    call WriteString
-
-    mov eax, decPart
-    cmp eax, 10
-    jae skipZero
-    mov al, '0'
-    call WriteChar
     call Crlf
-
-    ; Wait for user to continue
+    
     mov edx, OFFSET continueMsgPrompt
     call WriteString
     call ReadChar
     call Crlf
     jmp calculator_loop
-
     
 calc_profit_loss:
     mov ecx, purchaseCount
