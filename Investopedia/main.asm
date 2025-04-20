@@ -20,11 +20,11 @@ INCLUDE IRVINE32.INC
     userPageTitle BYTE "||====================================||", 0Dh, 0Ah,
                        "||          INVESTOPEDIA              ||", 0Dh, 0Ah, 
                        "||====================================||", 0Dh, 0Ah, 0
-    userPageOptions BYTE "0. Register New Account", 0Dh, 0Ah,
-                         "1. Login", 0Dh, 0Ah,
-                         "2. Reset Password", 0Dh, 0Ah,
-                         "3. Exit", 0Dh, 0Ah, 0Dh, 0Ah,
-                         "Enter your choice (0-3): ", 0 
+ userPageOptions BYTE "1. Register New Account", 0Dh, 0Ah,
+                         "2. Login", 0Dh, 0Ah,
+                         "3. Reset Password", 0Dh, 0Ah,
+                         "4. Exit", 0Dh, 0Ah, 0Dh, 0Ah,
+                         "Enter your choice (1-4): ", 0
                       
     registrationTitle BYTE "||====================================||", 0Dh, 0Ah,
                            "||  INVESTOPEDIA - USER REGISTRATION  ||", 0Dh, 0Ah, 
@@ -52,11 +52,10 @@ INCLUDE IRVINE32.INC
     promptLoginPass   BYTE "Enter your password: ", 0
     loginSuccessMsg   BYTE "Login successful!", 0Dh, 0Ah, 0
     loginFailMsg      BYTE "Invalid email or password.", 0Dh, 0Ah, 0
-    loginOptionsMsg   BYTE "Options:", 0Dh, 0Ah,
-                           "0. Change Password", 0Dh, 0Ah,
-                           "1. Try Login Again", 0Dh, 0Ah,
-                           "2. Register New Account", 0Dh, 0Ah,
-                           "Enter your choice (0-2): ", 0
+    loginOptionsMsg BYTE "1. Reset Password", 0Dh, 0Ah,
+                         "2. Try Again", 0Dh, 0Ah,
+                         "3. Register New Account", 0Dh, 0Ah,
+                         "Enter your choice (1-3): ", 0
     changePassTitle   BYTE "||====================================||", 0Dh, 0Ah,
                            "||        CHANGE PASSWORD             ||", 0Dh, 0Ah, 
                            "||====================================||", 0Dh, 0Ah, 0
@@ -213,6 +212,37 @@ INCLUDE IRVINE32.INC
             BYTE "Risk Level: Medium", 0Dh, 0Ah
             BYTE "Description: Moderate risk, good diversification. Suitable for long-term investors (5+ years).", 0Dh, 0Ah
             BYTE "Recommended Starting Capital: $1,000", 0Dh, 0Ah, 0
+
+    stockNames BYTE "Apple (AAPL)", 0
+           BYTE "Tesla (TSLA)", 0
+           BYTE "Microsoft (MSFT)", 0
+           BYTE "NVIDIA (NVDA)", 0
+           BYTE "Amazon (AMZN)", 0
+           BYTE "Meta (META)", 0
+           BYTE "Coca-Cola (KO)", 0
+           BYTE "Berkshire (BRK)", 0
+
+    bondNames BYTE "U.S. Treasury Bond", 0
+          BYTE "Municipal Bond", 0
+          BYTE "Corporate Bond", 0
+          BYTE "High-Yield Bond", 0
+          BYTE "Government Savings Bond", 0
+          BYTE "Inflation-Protected Bond", 0
+          BYTE "Green Bond", 0
+          BYTE "Convertible Bond", 0
+
+    indexNames BYTE "S&P 500", 0
+           BYTE "Total Stock Market", 0
+           BYTE "Nasdaq-100", 0
+           BYTE "Russell 2000", 0
+           BYTE "International Index", 0
+           BYTE "Emerging Markets", 0
+           BYTE "Dividend Growth", 0
+           BYTE "Bond Index", 0
+
+    stockNamePtrs DWORD 8 DUP(?)
+    bondNamePtrs DWORD 8 DUP(?)
+    indexNamePtrs DWORD 8 DUP(?)
 
     stocksListTitle   BYTE "||====================================||", 0Dh, 0Ah,
                            "||        AVAILABLE STOCKS            ||", 0Dh, 0Ah, 
@@ -511,13 +541,13 @@ user_page_start:
     call ReadInt
     call Crlf
     
-    cmp eax, 0
-    je go_to_registration
     cmp eax, 1
-    je go_to_login
+    je go_to_registration
     cmp eax, 2
-    je go_to_reset_password
+    je go_to_login
     cmp eax, 3
+    je go_to_reset_password
+    cmp eax, 4
     je exit_program
     
     ; Invalid option
@@ -549,7 +579,6 @@ exit_to_menu:
 UserPage ENDP
 
 
-; Registration Procedure
 Registration PROC
 registration_start:
     call Clrscr
@@ -646,27 +675,22 @@ password_match:
     imul ecx, SIZEOF User
     add esi, ecx
 
-    ; Copy name
     mov edi, OFFSET inputName
     mov ebx, esi  ; Name is at the beginning of the structure
     call CopyString
 
-    ; Copy email
     mov edi, OFFSET inputEmail
     lea ebx, [esi + MAX_NAME_LENGTH]  ; Email comes after name
     call CopyString
 
-    ; Copy password
     mov edi, OFFSET inputPassword
     lea ebx, [esi + MAX_NAME_LENGTH + MAX_EMAIL_LENGTH]  ; Password comes after email
     call CopyString
 
     inc userCount
     
-    ; Save user data to file after registration
     call SaveUserData
     
-    ; Show success message in green
     mov edx, OFFSET regsuccessMsg
     call SuccessTextDisplay
     call WaitForEnter
@@ -880,11 +904,11 @@ login_failed:
     call WriteString
     call ReadInt
     
-    cmp eax, 0
-    je change_password
     cmp eax, 1
-    je login_start
+    je change_password
     cmp eax, 2
+    je login_start
+    cmp eax, 3
     je go_to_registration
     
     ; If invalid option, default to try login again
@@ -1194,9 +1218,6 @@ settings_menu:
 Menu ENDP
 
 DisplayInvestmentName PROC
-    ; EAX contains investment type (1=stock, 2=bond, 3=index)
-    ; ESI contains the index
-    
     mov ebx, purchaseItems[esi*4]  ; Get item number
     
     cmp eax, 1
@@ -1204,167 +1225,23 @@ DisplayInvestmentName PROC
     
     ; It's a stock - display stock name
     cmp ebx, 1
-    jne display_stock_2
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'A'
-    mov BYTE PTR [edx+1], 'p'
-    mov BYTE PTR [edx+2], 'p'
-    mov BYTE PTR [edx+3], 'l'
-    mov BYTE PTR [edx+4], 'e'
-    mov BYTE PTR [edx+5], ' '
-    mov BYTE PTR [edx+6], '('
-    mov BYTE PTR [edx+7], 'A'
-    mov BYTE PTR [edx+8], 'A'
-    mov BYTE PTR [edx+9], 'P'
-    mov BYTE PTR [edx+10], 'L'
-    mov BYTE PTR [edx+11], ')'
-    mov BYTE PTR [edx+12], 0
-    jmp display_stock_name
-    
-display_stock_2:
-    cmp ebx, 2
-    jne display_stock_3
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'T'
-    mov BYTE PTR [edx+1], 'e'
-    mov BYTE PTR [edx+2], 's'
-    mov BYTE PTR [edx+3], 'l'
-    mov BYTE PTR [edx+4], 'a'
-    mov BYTE PTR [edx+5], ' '
-    mov BYTE PTR [edx+6], '('
-    mov BYTE PTR [edx+7], 'T'
-    mov BYTE PTR [edx+8], 'S'
-    mov BYTE PTR [edx+9], 'L'
-    mov BYTE PTR [edx+10], 'A'
-    mov BYTE PTR [edx+11], ')'
-    mov BYTE PTR [edx+12], 0
-    jmp display_stock_name
-    
-display_stock_3:
-    cmp ebx, 3
-    jne display_stock_4
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'M'
-    mov BYTE PTR [edx+1], 'i'
-    mov BYTE PTR [edx+2], 'c'
-    mov BYTE PTR [edx+3], 'r'
-    mov BYTE PTR [edx+4], 'o'
-    mov BYTE PTR [edx+5], 's'
-    mov BYTE PTR [edx+6], 'o'
-    mov BYTE PTR [edx+7], 'f'
-    mov BYTE PTR [edx+8], 't'
-    mov BYTE PTR [edx+9], ' '
-    mov BYTE PTR [edx+10], '('
-    mov BYTE PTR [edx+11], 'M'
-    mov BYTE PTR [edx+12], 'S'
-    mov BYTE PTR [edx+13], 'F'
-    mov BYTE PTR [edx+14], 'T'
-    mov BYTE PTR [edx+15], ')'
-    mov BYTE PTR [edx+16], 0
-    jmp display_stock_name
-    
-display_stock_4:
-    cmp ebx, 4
-    jne display_stock_5
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'N'
-    mov BYTE PTR [edx+1], 'V'
-    mov BYTE PTR [edx+2], 'I'
-    mov BYTE PTR [edx+3], 'D'
-    mov BYTE PTR [edx+4], 'I'
-    mov BYTE PTR [edx+5], 'A'
-    mov BYTE PTR [edx+6], ' '
-    mov BYTE PTR [edx+7], '('
-    mov BYTE PTR [edx+8], 'N'
-    mov BYTE PTR [edx+9], 'V'
-    mov BYTE PTR [edx+10], 'D'
-    mov BYTE PTR [edx+11], 'A'
-    mov BYTE PTR [edx+12], ')'
-    mov BYTE PTR [edx+13], 0
-    jmp display_stock_name
-    
-display_stock_5:
-    cmp ebx, 5
-    jne display_stock_6
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'A'
-    mov BYTE PTR [edx+1], 'm'
-    mov BYTE PTR [edx+2], 'a'
-    mov BYTE PTR [edx+3], 'z'
-    mov BYTE PTR [edx+4], 'o'
-    mov BYTE PTR [edx+5], 'n'
-    mov BYTE PTR [edx+6], ' '
-    mov BYTE PTR [edx+7], '('
-    mov BYTE PTR [edx+8], 'A'
-    mov BYTE PTR [edx+9], 'M'
-    mov BYTE PTR [edx+10], 'Z'
-    mov BYTE PTR [edx+11], 'N'
-    mov BYTE PTR [edx+12], ')'
-    mov BYTE PTR [edx+13], 0
-    jmp display_stock_name
-    
-display_stock_6:
-    cmp ebx, 6
-    jne display_stock_7
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'M'
-    mov BYTE PTR [edx+1], 'e'
-    mov BYTE PTR [edx+2], 't'
-    mov BYTE PTR [edx+3], 'a'
-    mov BYTE PTR [edx+4], ' '
-    mov BYTE PTR [edx+5], '('
-    mov BYTE PTR [edx+6], 'M'
-    mov BYTE PTR [edx+7], 'E'
-    mov BYTE PTR [edx+8], 'T'
-    mov BYTE PTR [edx+9], 'A'
-    mov BYTE PTR [edx+10], ')'
-    mov BYTE PTR [edx+11], 0
-    jmp display_stock_name
-    
-display_stock_7:
-    cmp ebx, 7
-    jne display_stock_8
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'C'
-    mov BYTE PTR [edx+1], 'o'
-    mov BYTE PTR [edx+2], 'c'
-    mov BYTE PTR [edx+3], 'a'
-    mov BYTE PTR [edx+4], '-'
-    mov BYTE PTR [edx+5], 'C'
-    mov BYTE PTR [edx+6], 'o'
-    mov BYTE PTR [edx+7], 'l'
-    mov BYTE PTR [edx+8], 'a'
-    mov BYTE PTR [edx+9], ' '
-    mov BYTE PTR [edx+10], '('
-    mov BYTE PTR [edx+11], 'K'
-    mov BYTE PTR [edx+12], 'O'
-    mov BYTE PTR [edx+13], ')'
-    mov BYTE PTR [edx+14], 0
-    jmp display_stock_name
-    
-display_stock_8:
+    jl display_stock_generic
     cmp ebx, 8
-    jne display_unknown_stock
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'B'
-    mov BYTE PTR [edx+1], 'e'
-    mov BYTE PTR [edx+2], 'r'
-    mov BYTE PTR [edx+3], 'k'
-    mov BYTE PTR [edx+4], 's'
-    mov BYTE PTR [edx+5], 'h'
-    mov BYTE PTR [edx+6], 'i'
-    mov BYTE PTR [edx+7], 'r'
-    mov BYTE PTR [edx+8], 'e'
-    mov BYTE PTR [edx+9], ' '
-    mov BYTE PTR [edx+10], '('
-    mov BYTE PTR [edx+11], 'B'
-    mov BYTE PTR [edx+12], 'R'
-    mov BYTE PTR [edx+13], 'K'
-    mov BYTE PTR [edx+14], ')'
-    mov BYTE PTR [edx+15], 0
-    jmp display_stock_name
+    jg display_stock_generic
     
-display_unknown_stock:
+    ; Get pointer to stock name - using a different approach
+    push ebx
+    push esi
+    mov esi, ebx
+    dec esi         ; Convert from 1-based to 0-based
+    shl esi, 2      ; Multiply by 4 (same as imul esi, 4)
+    mov edx, stockNamePtrs[esi]
+    pop esi
+    pop ebx
+    call WriteString
+    jmp display_done
+    
+display_stock_generic:
     mov edx, OFFSET stockTemp
     mov BYTE PTR [edx], 'S'
     mov BYTE PTR [edx+1], 't'
@@ -1379,82 +1256,29 @@ display_unknown_stock:
     call WriteDec
     jmp display_done
     
-display_stock_name:
-    call WriteString
-    jmp display_done
-    
 check_bond_type:
     cmp eax, 2
     jne check_index_type
     
     ; It's a bond - display bond name
     cmp ebx, 1
-    jne display_bond_2
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'U'
-    mov BYTE PTR [edx+1], '.'
-    mov BYTE PTR [edx+2], 'S'
-    mov BYTE PTR [edx+3], ' '
-    mov BYTE PTR [edx+4], 'T'
-    mov BYTE PTR [edx+5], 'r'
-    mov BYTE PTR [edx+6], 'e'
-    mov BYTE PTR [edx+7], 'a'
-    mov BYTE PTR [edx+8], 's'
-    mov BYTE PTR [edx+9], 'u'
-    mov BYTE PTR [edx+10], 'r'
-    mov BYTE PTR [edx+11], 'y'
-    mov BYTE PTR [edx+12], ' '
-    mov BYTE PTR [edx+13], 'B'
-    mov BYTE PTR [edx+14], 'o'
-    mov BYTE PTR [edx+15], 'n'
-    mov BYTE PTR [edx+16], 'd'
-    mov BYTE PTR [edx+17], 0
-    jmp display_stock_name
+    jl display_bond_generic
+    cmp ebx, 8
+    jg display_bond_generic
     
-display_bond_2:
-    cmp ebx, 2
-    jne display_bond_3
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'M'
-    mov BYTE PTR [edx+1], 'u'
-    mov BYTE PTR [edx+2], 'n'
-    mov BYTE PTR [edx+3], 'i'
-    mov BYTE PTR [edx+4], 'c'
-    mov BYTE PTR [edx+5], 'i'
-    mov BYTE PTR [edx+6], 'p'
-    mov BYTE PTR [edx+7], 'a'
-    mov BYTE PTR [edx+8], 'l'
-    mov BYTE PTR [edx+9], ' '
-    mov BYTE PTR [edx+10], 'B'
-    mov BYTE PTR [edx+11], 'o'
-    mov BYTE PTR [edx+12], 'n'
-    mov BYTE PTR [edx+13], 'd'
-    mov BYTE PTR [edx+14], 0
-    jmp display_stock_name
+    ; Get pointer to bond name - using a different approach
+    push ebx
+    push esi
+    mov esi, ebx
+    dec esi         ; Convert from 1-based to 0-based
+    shl esi, 2      ; Multiply by 4 (same as imul esi, 4)
+    mov edx, bondNamePtrs[esi]
+    pop esi
+    pop ebx
+    call WriteString
+    jmp display_done
     
-display_bond_3:
-    cmp ebx, 3
-    jne display_bond_4
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'C'
-    mov BYTE PTR [edx+1], 'o'
-    mov BYTE PTR [edx+2], 'r'
-    mov BYTE PTR [edx+3], 'p'
-    mov BYTE PTR [edx+4], 'o'
-    mov BYTE PTR [edx+5], 'r'
-    mov BYTE PTR [edx+6], 'a'
-    mov BYTE PTR [edx+7], 't'
-    mov BYTE PTR [edx+8], 'e'
-    mov BYTE PTR [edx+9], ' '
-    mov BYTE PTR [edx+10], 'B'
-    mov BYTE PTR [edx+11], 'o'
-    mov BYTE PTR [edx+12], 'n'
-    mov BYTE PTR [edx+13], 'd'
-    mov BYTE PTR [edx+14], 0
-    jmp display_stock_name
-    
-display_bond_4:
-    ; Add more bonds as needed
+display_bond_generic:
     mov edx, OFFSET stockTemp
     mov BYTE PTR [edx], 'B'
     mov BYTE PTR [edx+1], 'o'
@@ -1470,66 +1294,27 @@ display_bond_4:
     
 check_index_type:
     cmp eax, 3
-    jne unknown_investment_type
+    jne display_done  ; Just finish if not a known type
     
-    ; It's an index fund - display index name
+    ; It's an index - display index name
     cmp ebx, 1
-    jne display_index_2
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'S'
-    mov BYTE PTR [edx+1], '&'
-    mov BYTE PTR [edx+2], 'P'
-    mov BYTE PTR [edx+3], ' '
-    mov BYTE PTR [edx+4], '5'
-    mov BYTE PTR [edx+5], '0'
-    mov BYTE PTR [edx+6], '0'
-    mov BYTE PTR [edx+7], 0
-    jmp display_stock_name
+    jl display_index_generic
+    cmp ebx, 8
+    jg display_index_generic
     
-display_index_2:
-    cmp ebx, 2
-    jne display_index_3
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'T'
-    mov BYTE PTR [edx+1], 'o'
-    mov BYTE PTR [edx+2], 't'
-    mov BYTE PTR [edx+3], 'a'
-    mov BYTE PTR [edx+4], 'l'
-    mov BYTE PTR [edx+5], ' '
-    mov BYTE PTR [edx+6], 'S'
-    mov BYTE PTR [edx+7], 't'
-    mov BYTE PTR [edx+8], 'o'
-    mov BYTE PTR [edx+9], 'c'
-    mov BYTE PTR [edx+10], 'k'
-    mov BYTE PTR [edx+11], ' '
-    mov BYTE PTR [edx+12], 'M'
-    mov BYTE PTR [edx+13], 'a'
-    mov BYTE PTR [edx+14], 'r'
-    mov BYTE PTR [edx+15], 'k'
-    mov BYTE PTR [edx+16], 'e'
-    mov BYTE PTR [edx+17], 't'
-    mov BYTE PTR [edx+18], 0
-    jmp display_stock_name
+    ; Get pointer to index name - using a different approach
+    push ebx
+    push esi
+    mov esi, ebx
+    dec esi         ; Convert from 1-based to 0-based
+    shl esi, 2      ; Multiply by 4 (same as imul esi, 4)
+    mov edx, indexNamePtrs[esi]
+    pop esi
+    pop ebx
+    call WriteString
+    jmp display_done
     
-display_index_3:
-    cmp ebx, 3
-    jne display_index_4
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'N'
-    mov BYTE PTR [edx+1], 'a'
-    mov BYTE PTR [edx+2], 's'
-    mov BYTE PTR [edx+3], 'd'
-    mov BYTE PTR [edx+4], 'a'
-    mov BYTE PTR [edx+5], 'q'
-    mov BYTE PTR [edx+6], '-'
-    mov BYTE PTR [edx+7], '1'
-    mov BYTE PTR [edx+8], '0'
-    mov BYTE PTR [edx+9], '0'
-    mov BYTE PTR [edx+10], 0
-    jmp display_stock_name
-    
-display_index_4:
-    ; Add more indexes as needed
+display_index_generic:
     mov edx, OFFSET stockTemp
     mov BYTE PTR [edx], 'I'
     mov BYTE PTR [edx+1], 'n'
@@ -1542,20 +1327,6 @@ display_index_4:
     call WriteString
     mov eax, ebx
     call WriteDec
-    jmp display_done
-    
-unknown_investment_type:
-    ; Unknown type - display generic name
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'U'
-    mov BYTE PTR [edx+1], 'n'
-    mov BYTE PTR [edx+2], 'k'
-    mov BYTE PTR [edx+3], 'n'
-    mov BYTE PTR [edx+4], 'o'
-    mov BYTE PTR [edx+5], 'w'
-    mov BYTE PTR [edx+6], 'n'
-    mov BYTE PTR [edx+7], 0
-    call WriteString
     
 display_done:
     ret
@@ -1997,351 +1768,214 @@ compare_done:
     ret
 CompareStringsIgnoreCase ENDP
 
+InitializeInvestmentData PROC
+    ; Initialize stock name pointers
+    mov esi, OFFSET stockNames
+    mov ebx, OFFSET stockNamePtrs
+    mov ecx, 8  ; 8 stocks
+    
+init_stock_ptrs:
+    mov [ebx], esi
+    add ebx, 4
+    
+    ; Find end of current string (0 terminator)
+    push ebx
+    push ecx
+find_stock_end:
+    mov al, [esi]
+    inc esi
+    cmp al, 0
+    jne find_stock_end
+    pop ecx
+    pop ebx
+    
+    loop init_stock_ptrs
+    
+    ; Initialize bond name pointers
+    mov esi, OFFSET bondNames
+    mov ebx, OFFSET bondNamePtrs
+    mov ecx, 8  ; 8 bonds
+    
+init_bond_ptrs:
+    mov [ebx], esi
+    add ebx, 4
+    
+    ; Find end of current string
+    push ebx
+    push ecx
+find_bond_end:
+    mov al, [esi]
+    inc esi
+    cmp al, 0
+    jne find_bond_end
+    pop ecx
+    pop ebx
+    
+    loop init_bond_ptrs
+    
+    ; Initialize index name pointers
+    mov esi, OFFSET indexNames
+    mov ebx, OFFSET indexNamePtrs
+    mov ecx, 8  ; 8 indexes
+    
+init_index_ptrs:
+    mov [ebx], esi
+    add ebx, 4
+    
+    ; Find end of current string
+    push ebx
+    push ecx
+find_index_end:
+    mov al, [esi]
+    inc esi
+    cmp al, 0
+    jne find_index_end
+    pop ecx
+    pop ebx
+    
+    loop init_index_ptrs
+    
+    ret
+InitializeInvestmentData ENDP
+
 GetInvestmentName PROC
-    ; EAX contains investment type (1=stock, 2=bond, 3=index)
-    ; EBX contains item number
-    ; Returns name in stockTemp
+    ; EAX = investment type (1=stock, 2=bond, 3=index)
+    ; EBX = item number (1-based)
     
+    ; Clear stockTemp buffer
+    mov edi, OFFSET stockTemp
+    mov ecx, 50
+    mov al, 0
+    rep stosb
+    
+    ; Reset EDI to start of buffer
+    mov edi, OFFSET stockTemp
+    
+    ; Check investment type
     cmp eax, 1
-    jne check_bond_type_name
+    jne check_bond_name
     
-    ; It's a stock - get stock name
+    ; It's a stock - copy stock name
     cmp ebx, 1
-    jne get_stock_2
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'A'
-    mov BYTE PTR [edx+1], 'p'
-    mov BYTE PTR [edx+2], 'p'
-    mov BYTE PTR [edx+3], 'l'
-    mov BYTE PTR [edx+4], 'e'
-    mov BYTE PTR [edx+5], ' '
-    mov BYTE PTR [edx+6], '('
-    mov BYTE PTR [edx+7], 'A'
-    mov BYTE PTR [edx+8], 'A'
-    mov BYTE PTR [edx+9], 'P'
-    mov BYTE PTR [edx+10], 'L'
-    mov BYTE PTR [edx+11], ')'
-    mov BYTE PTR [edx+12], 0
-    ret
-    
-get_stock_2:
-    cmp ebx, 2
-    jne get_stock_3
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'T'
-    mov BYTE PTR [edx+1], 'e'
-    mov BYTE PTR [edx+2], 's'
-    mov BYTE PTR [edx+3], 'l'
-    mov BYTE PTR [edx+4], 'a'
-    mov BYTE PTR [edx+5], ' '
-    mov BYTE PTR [edx+6], '('
-    mov BYTE PTR [edx+7], 'T'
-    mov BYTE PTR [edx+8], 'S'
-    mov BYTE PTR [edx+9], 'L'
-    mov BYTE PTR [edx+10], 'A'
-    mov BYTE PTR [edx+11], ')'
-    mov BYTE PTR [edx+12], 0
-    ret
-    
-get_stock_3:
-    cmp ebx, 3
-    jne get_stock_4
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'M'
-    mov BYTE PTR [edx+1], 'i'
-    mov BYTE PTR [edx+2], 'c'
-    mov BYTE PTR [edx+3], 'r'
-    mov BYTE PTR [edx+4], 'o'
-    mov BYTE PTR [edx+5], 's'
-    mov BYTE PTR [edx+6], 'o'
-    mov BYTE PTR [edx+7], 'f'
-    mov BYTE PTR [edx+8], 't'
-    mov BYTE PTR [edx+9], ' '
-    mov BYTE PTR [edx+10], '('
-    mov BYTE PTR [edx+11], 'M'
-    mov BYTE PTR [edx+12], 'S'
-    mov BYTE PTR [edx+13], 'F'
-    mov BYTE PTR [edx+14], 'T'
-    mov BYTE PTR [edx+15], ')'
-    mov BYTE PTR [edx+16], 0
-    ret
-    
-get_stock_4:
-    cmp ebx, 4
-    jne get_stock_5
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'N'
-    mov BYTE PTR [edx+1], 'V'
-    mov BYTE PTR [edx+2], 'I'
-    mov BYTE PTR [edx+3], 'D'
-    mov BYTE PTR [edx+4], 'I'
-    mov BYTE PTR [edx+5], 'A'
-    mov BYTE PTR [edx+6], ' '
-    mov BYTE PTR [edx+7], '('
-    mov BYTE PTR [edx+8], 'N'
-    mov BYTE PTR [edx+9], 'V'
-    mov BYTE PTR [edx+10], 'D'
-    mov BYTE PTR [edx+11], 'A'
-    mov BYTE PTR [edx+12], ')'
-    mov BYTE PTR [edx+13], 0
-    ret
-    
-get_stock_5:
-    cmp ebx, 5
-    jne get_stock_6
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'A'
-    mov BYTE PTR [edx+1], 'm'
-    mov BYTE PTR [edx+2], 'a'
-    mov BYTE PTR [edx+3], 'z'
-    mov BYTE PTR [edx+4], 'o'
-    mov BYTE PTR [edx+5], 'n'
-    mov BYTE PTR [edx+6], ' '
-    mov BYTE PTR [edx+7], '('
-    mov BYTE PTR [edx+8], 'A'
-    mov BYTE PTR [edx+9], 'M'
-    mov BYTE PTR [edx+10], 'Z'
-    mov BYTE PTR [edx+11], 'N'
-    mov BYTE PTR [edx+12], ')'
-    mov BYTE PTR [edx+13], 0
-    ret
-    
-get_stock_6:
-    cmp ebx, 6
-    jne get_stock_7
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'M'
-    mov BYTE PTR [edx+1], 'e'
-    mov BYTE PTR [edx+2], 't'
-    mov BYTE PTR [edx+3], 'a'
-    mov BYTE PTR [edx+4], ' '
-    mov BYTE PTR [edx+5], '('
-    mov BYTE PTR [edx+6], 'M'
-    mov BYTE PTR [edx+7], 'E'
-    mov BYTE PTR [edx+8], 'T'
-    mov BYTE PTR [edx+9], 'A'
-    mov BYTE PTR [edx+10], ')'
-    mov BYTE PTR [edx+11], 0
-    ret
-    
-get_stock_7:
-    cmp ebx, 7
-    jne get_stock_8
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'C'
-    mov BYTE PTR [edx+1], 'o'
-    mov BYTE PTR [edx+2], 'c'
-    mov BYTE PTR [edx+3], 'a'
-    mov BYTE PTR [edx+4], '-'
-    mov BYTE PTR [edx+5], 'C'
-    mov BYTE PTR [edx+6], 'o'
-    mov BYTE PTR [edx+7], 'l'
-    mov BYTE PTR [edx+8], 'a'
-    mov BYTE PTR [edx+9], ' '
-    mov BYTE PTR [edx+10], '('
-    mov BYTE PTR [edx+11], 'K'
-    mov BYTE PTR [edx+12], 'O'
-    mov BYTE PTR [edx+13], ')'
-    mov BYTE PTR [edx+14], 0
-    ret
-    
-get_stock_8:
+    jl get_stock_generic
     cmp ebx, 8
-    jne get_unknown_stock
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'B'
-    mov BYTE PTR [edx+1], 'e'
-    mov BYTE PTR [edx+2], 'r'
-    mov BYTE PTR [edx+3], 'k'
-    mov BYTE PTR [edx+4], 's'
-    mov BYTE PTR [edx+5], 'h'
-    mov BYTE PTR [edx+6], 'i'
-    mov BYTE PTR [edx+7], 'r'
-    mov BYTE PTR [edx+8], 'e'
-    mov BYTE PTR [edx+9], ' '
-    mov BYTE PTR [edx+10], '('
-    mov BYTE PTR [edx+11], 'B'
-    mov BYTE PTR [edx+12], 'R'
-    mov BYTE PTR [edx+13], 'K'
-    mov BYTE PTR [edx+14], ')'
-    mov BYTE PTR [edx+15], 0
+    jg get_stock_generic
+    
+    ; Get pointer to stock name - using a different approach
+    push ebx
+    mov esi, ebx
+    dec esi         ; Convert from 1-based to 0-based
+    shl esi, 2      ; Multiply by 4 (same as imul esi, 4)
+    mov esi, stockNamePtrs[esi]
+    pop ebx
+    
+copy_stock_name:
+    mov al, [esi]
+    mov [edi], al
+    inc esi
+    inc edi
+    cmp al, 0
+    jne copy_stock_name
     ret
     
-get_unknown_stock:
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'S'
-    mov BYTE PTR [edx+1], 't'
-    mov BYTE PTR [edx+2], 'o'
-    mov BYTE PTR [edx+3], 'c'
-    mov BYTE PTR [edx+4], 'k'
-    mov BYTE PTR [edx+5], ' '
-    mov BYTE PTR [edx+6], '#'
-    mov BYTE PTR [edx+7], 0
+get_stock_generic:
+    mov BYTE PTR [edi], 'S'
+    mov BYTE PTR [edi+1], 't'
+    mov BYTE PTR [edi+2], 'o'
+    mov BYTE PTR [edi+3], 'c'
+    mov BYTE PTR [edi+4], 'k'
+    mov BYTE PTR [edi+5], ' '
+    mov BYTE PTR [edi+6], '#'
+    mov BYTE PTR [edi+7], 0
     ret
     
-check_bond_type_name:
+check_bond_name:
     cmp eax, 2
-    jne check_index_type_name
+    jne check_index_name
     
-    ; It's a bond - get bond name
+    ; It's a bond - copy bond name
     cmp ebx, 1
-    jne get_bond_2
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'U'
-    mov BYTE PTR [edx+1], '.'
-    mov BYTE PTR [edx+2], 'S'
-    mov BYTE PTR [edx+3], ' '
-    mov BYTE PTR [edx+4], 'T'
-    mov BYTE PTR [edx+5], 'r'
-    mov BYTE PTR [edx+6], 'e'
-    mov BYTE PTR [edx+7], 'a'
-    mov BYTE PTR [edx+8], 's'
-    mov BYTE PTR [edx+9], 'u'
-    mov BYTE PTR [edx+10], 'r'
-    mov BYTE PTR [edx+11], 'y'
-    mov BYTE PTR [edx+12], ' '
-    mov BYTE PTR [edx+13], 'B'
-    mov BYTE PTR [edx+14], 'o'
-    mov BYTE PTR [edx+15], 'n'
-    mov BYTE PTR [edx+16], 'd'
-    mov BYTE PTR [edx+17], 0
+    jl get_bond_generic
+    cmp ebx, 8
+    jg get_bond_generic
+    
+    ; Get pointer to bond name - using a different approach
+    push ebx
+    mov esi, ebx
+    dec esi         ; Convert from 1-based to 0-based
+    shl esi, 2      ; Multiply by 4 (same as imul esi, 4)
+    mov esi, bondNamePtrs[esi]
+    pop ebx
+    
+copy_bond_name:
+    mov al, [esi]
+    mov [edi], al
+    inc esi
+    inc edi
+    cmp al, 0
+    jne copy_bond_name
     ret
     
-get_bond_2:
-    cmp ebx, 2
-    jne get_bond_3
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'M'
-    mov BYTE PTR [edx+1], 'u'
-    mov BYTE PTR [edx+2], 'n'
-    mov BYTE PTR [edx+3], 'i'
-    mov BYTE PTR [edx+4], 'c'
-    mov BYTE PTR [edx+5], 'i'
-    mov BYTE PTR [edx+6], 'p'
-    mov BYTE PTR [edx+7], 'a'
-    mov BYTE PTR [edx+8], 'l'
-    mov BYTE PTR [edx+9], ' '
-    mov BYTE PTR [edx+10], 'B'
-    mov BYTE PTR [edx+11], 'o'
-    mov BYTE PTR [edx+12], 'n'
-    mov BYTE PTR [edx+13], 'd'
-    mov BYTE PTR [edx+14], 0
+get_bond_generic:
+    mov BYTE PTR [edi], 'B'
+    mov BYTE PTR [edi+1], 'o'
+    mov BYTE PTR [edi+2], 'n'
+    mov BYTE PTR [edi+3], 'd'
+    mov BYTE PTR [edi+4], ' '
+    mov BYTE PTR [edi+5], '#'
+    mov BYTE PTR [edi+6], 0
     ret
     
-get_bond_3:
-    cmp ebx, 3
-    jne get_bond_4
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'C'
-    mov BYTE PTR [edx+1], 'o'
-    mov BYTE PTR [edx+2], 'r'
-    mov BYTE PTR [edx+3], 'p'
-    mov BYTE PTR [edx+4], 'o'
-    mov BYTE PTR [edx+5], 'r'
-    mov BYTE PTR [edx+6], 'a'
-    mov BYTE PTR [edx+7], 't'
-    mov BYTE PTR [edx+8], 'e'
-    mov BYTE PTR [edx+9], ' '
-    mov BYTE PTR [edx+10], 'B'
-    mov BYTE PTR [edx+11], 'o'
-    mov BYTE PTR [edx+12], 'n'
-    mov BYTE PTR [edx+13], 'd'
-    mov BYTE PTR [edx+14], 0
-    ret
-    
-get_bond_4:
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'B'
-    mov BYTE PTR [edx+1], 'o'
-    mov BYTE PTR [edx+2], 'n'
-    mov BYTE PTR [edx+3], 'd'
-    mov BYTE PTR [edx+4], ' '
-    mov BYTE PTR [edx+5], '#'
-    mov BYTE PTR [edx+6], 0
-    ret
-    
-check_index_type_name:
+check_index_name:
     cmp eax, 3
-    jne get_unknown_investment
+    jne get_default_name
     
-    ; It's an index fund - get index name
+    ; It's an index - copy index name
     cmp ebx, 1
-    jne get_index_2
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'S'
-    mov BYTE PTR [edx+1], '&'
-    mov BYTE PTR [edx+2], 'P'
-    mov BYTE PTR [edx+3], ' '
-    mov BYTE PTR [edx+4], '5'
-    mov BYTE PTR [edx+5], '0'
-    mov BYTE PTR [edx+6], '0'
-    mov BYTE PTR [edx+7], 0
+    jl get_index_generic
+    cmp ebx, 8
+    jg get_index_generic
+    
+    ; Get pointer to index name - using a different approach
+    push ebx
+    mov esi, ebx
+    dec esi         ; Convert from 1-based to 0-based
+    shl esi, 2      ; Multiply by 4 (same as imul esi, 4)
+    mov esi, indexNamePtrs[esi]
+    pop ebx
+    
+copy_index_name:
+    mov al, [esi]
+    mov [edi], al
+    inc esi
+    inc edi
+    cmp al, 0
+    jne copy_index_name
     ret
     
-get_index_2:
-    cmp ebx, 2
-    jne get_index_3
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'T'
-    mov BYTE PTR [edx+1], 'o'
-    mov BYTE PTR [edx+2], 't'
-    mov BYTE PTR [edx+3], 'a'
-    mov BYTE PTR [edx+4], 'l'
-    mov BYTE PTR [edx+5], ' '
-    mov BYTE PTR [edx+6], 'S'
-    mov BYTE PTR [edx+7], 't'
-    mov BYTE PTR [edx+8], 'o'
-    mov BYTE PTR [edx+9], 'c'
-    mov BYTE PTR [edx+10], 'k'
-    mov BYTE PTR [edx+11], ' '
-    mov BYTE PTR [edx+12], 'M'
-    mov BYTE PTR [edx+13], 'a'
-    mov BYTE PTR [edx+14], 'r'
-    mov BYTE PTR [edx+15], 'k'
-    mov BYTE PTR [edx+16], 'e'
-    mov BYTE PTR [edx+17], 't'
-    mov BYTE PTR [edx+18], 0
+get_index_generic:
+    mov BYTE PTR [edi], 'I'
+    mov BYTE PTR [edi+1], 'n'
+    mov BYTE PTR [edi+2], 'd'
+    mov BYTE PTR [edi+3], 'e'
+    mov BYTE PTR [edi+4], 'x'
+    mov BYTE PTR [edi+5], ' '
+    mov BYTE PTR [edi+6], '#'
+    mov BYTE PTR [edi+7], 0
     ret
     
-get_index_3:
-    cmp ebx, 3
-    jne get_index_4
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'N'
-    mov BYTE PTR [edx+1], 'a'
-    mov BYTE PTR [edx+2], 's'
-    mov BYTE PTR [edx+3], 'd'
-    mov BYTE PTR [edx+4], 'a'
-    mov BYTE PTR [edx+5], 'q'
-    mov BYTE PTR [edx+6], '-'
-    mov BYTE PTR [edx+7], '1'
-    mov BYTE PTR [edx+8], '0'
-    mov BYTE PTR [edx+9], '0'
-    mov BYTE PTR [edx+10], 0
-    ret
-    
-get_index_4:
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'I'
-    mov BYTE PTR [edx+1], 'n'
-    mov BYTE PTR [edx+2], 'd'
-    mov BYTE PTR [edx+3], 'e'
-    mov BYTE PTR [edx+4], 'x'
-    mov BYTE PTR [edx+5], ' '
-    mov BYTE PTR [edx+6], '#'
-    mov BYTE PTR [edx+7], 0
-    ret
-    
-get_unknown_investment:
-    mov edx, OFFSET stockTemp
-    mov BYTE PTR [edx], 'U'
-    mov BYTE PTR [edx+1], 'n'
-    mov BYTE PTR [edx+2], 'k'
-    mov BYTE PTR [edx+3], 'n'
-    mov BYTE PTR [edx+4], 'o'
-    mov BYTE PTR [edx+5], 'w'
-    mov BYTE PTR [edx+6], 'n'
-    mov BYTE PTR [edx+7], 0
+get_default_name:
+    mov BYTE PTR [edi], 'I'
+    mov BYTE PTR [edi+1], 'n'
+    mov BYTE PTR [edi+2], 'v'
+    mov BYTE PTR [edi+3], 'e'
+    mov BYTE PTR [edi+4], 's'
+    mov BYTE PTR [edi+5], 't'
+    mov BYTE PTR [edi+6], 'm'
+    mov BYTE PTR [edi+7], 'e'
+    mov BYTE PTR [edi+8], 'n'
+    mov BYTE PTR [edi+9], 't'
+    mov BYTE PTR [edi+10], 0
     ret
 GetInvestmentName ENDP
 
@@ -3271,6 +2905,7 @@ SuccessTextDisplay PROC
 SuccessTextDisplay ENDP
 
 main PROC
+    call InitializeInvestmentData
     call LoadUserData
     
     call UserPage
