@@ -2331,59 +2331,82 @@ calculator_loop:
     jmp calculator_loop
 
 calc_future_value:
+    ; Prompt for portfolio value
     mov edx, OFFSET calcPromptValue
     call WriteString
     call ReadInt
     mov totalPortfolioValue, eax
-    
+
+    ; Prompt for annual interest rate
     mov edx, OFFSET calcPromptRate
     call WriteString
     call ReadInt
     mov rate, eax
 
-    mov eax, rate
-    imul eax, 100
-    mov rate, eax
-
+     ; Prompt for number of years
     mov edx, OFFSET calcPromptYears
     call WriteString
     call ReadInt
     mov years, eax
 
-    mov eax, rate
-    add eax, scale
-    mov ebx, eax
+    ; Future Value Calculation: FV = PV * (1 + r)^t
 
-    mov eax, scale
-    mov ecx, years
-    
+    ; Compute (1+r)
+    fild rate                      ; Load rate as floating-point
+    fld real100                    ; Load 100.0
+    fdivp st(1), st(0)             ; rate / 100
+    fld1
+    fadd                           ; (1 + r)
 
-exp_loop:
-    test ecx, ecx
-    jz done_exp
+    ; Compute exponent: t (years)
+    fild years                     ; Load years as floating-point
 
-    mul ebx
-    div scale
+    ; Stack: ST(0)=exponent, ST(1)=base
+    fxch						   ; Exchange ST(0) and ST(1)
+    call Pow                       ; ST(0) = (1 + r) ^ t
 
-    loop exp_loop
+    ; Multiply by PV
+    fild totalPortfolioValue
+    fmul						   ; PV * (1 + r) ^ t
 
-done_exp:
-    mul totalPortfolioValue
-    div scale
+    ; Scale to 2 decimal places and convert to int
+    fld real100
+    fmul
+    frndint
+    fist futureValue
 
-    mov futureValue, eax
+    ; Format to 2 decimal places
+    mov eax, futureValue
+    mov ebx, 100
+    xor edx, edx
+    div ebx
 
+    mov intPart, eax
+    mov decPart, edx
+
+    ; Display the result
     mov edx, OFFSET calcFutureMsg
     call WriteString
-    mov eax, futureValue
+    mov eax, intPart
     call WriteDec
-    call Crlf
     
+    mov edx, OFFSET dot
+    call WriteString
+
+    mov eax, decPart
+    cmp eax, 10
+    jae skipZero
+    mov al, '0'
+    call WriteChar
+    call Crlf
+
+    ; Wait for user to continue
     mov edx, OFFSET continueMsgPrompt
     call WriteString
     call ReadChar
     call Crlf
     jmp calculator_loop
+
     
 calc_profit_loss:
     mov ecx, purchaseCount
