@@ -146,15 +146,15 @@ INCLUDE IRVINE32.INC
     calcPromptValue     BYTE "Enter Your Portfolio Value: ", 0
     calcPromptRate      BYTE "Enter annual interest rate (as decimal, e.g. 5 for 5%): ", 0
     calcPromptYears     BYTE "Enter number of years: ", 0
-    calcPromptFees      BYTE "Enter transaction fees: $", 0
+    calcPromptFees      BYTE "Enter transaction fees: RM", 0
     
     
     calcPromptROI       BYTE "Return of Investment = RM ", 0Ah, 0Dh, 0
     calcPromptII        BYTE "Enter your initial investment: ", 0
-    calcResultMsg       BYTE "Calculation Result: $", 0
+    calcResultMsg       BYTE "Calculation Result: RM", 0
     calcPercentMsg      BYTE "Calculation Result: ", 0
-    calcFutureMsg       BYTE "Your Future Value: $", 0
-    calcProfitLossMsg   BYTE "The total profit or loss: $", 0Ah, 0Dh, 0
+    calcFutureMsg       BYTE "Future Value: RM", 0
+    calcProfitLossMsg   BYTE "The total profit or loss: RM", 0
     calcInitialInvestmentMsg    BYTE "Your initial investment is: ", 0
     
     settingsPage BYTE "||====================================||", 0Dh, 0Ah,
@@ -209,17 +209,17 @@ INCLUDE IRVINE32.INC
     invest1 BYTE 0Dh, 0Ah, "Investment: Stocks / Equities", 0Dh, 0Ah
             BYTE "Risk Level: Medium - High", 0Dh, 0Ah
             BYTE "Description: Higher risk, higher potential returns. Suitable for long-term investors.", 0Dh, 0Ah
-            BYTE "Recommended Starting Capital: $1,000", 0Dh, 0Ah, 0
+            BYTE "Recommended Starting Capital: RM1,000", 0Dh, 0Ah, 0
 
     invest2 BYTE 0Dh, 0Ah, "Investment: Bonds", 0Dh, 0Ah
             BYTE "Risk Level: Medium - Low", 0Dh, 0Ah
             BYTE "Description: Lower risk, moderate returns. Suitable for medium to long-term investors (3+ years).", 0Dh, 0Ah
-            BYTE "Recommended Starting Capital: $500", 0Dh, 0Ah, 0
+            BYTE "Recommended Starting Capital: RM500", 0Dh, 0Ah, 0
 
     invest3 BYTE 0Dh, 0Ah, "Investment: Index Funds", 0Dh, 0Ah
             BYTE "Risk Level: Medium", 0Dh, 0Ah
             BYTE "Description: Moderate risk, good diversification. Suitable for long-term investors (5+ years).", 0Dh, 0Ah
-            BYTE "Recommended Starting Capital: $1,000", 0Dh, 0Ah, 0
+            BYTE "Recommended Starting Capital: RM1,000", 0Dh, 0Ah, 0
 
     stockNames BYTE "Apple (AAPL)", 0
            BYTE "Tesla (TSLA)", 0
@@ -304,7 +304,7 @@ INCLUDE IRVINE32.INC
     tableRow BYTE "||  ", 0
     tableSep1 BYTE "  | ", 0
     tableSep2 BYTE " | ", 0
-    tableSep3 BYTE " | $", 0
+    tableSep3 BYTE " | RM", 0
     tableEnd BYTE "  ||", 0Dh, 0Ah, 0
     tableFooter BYTE "||=================================================||", 0Dh, 0Ah, 0
     
@@ -320,14 +320,14 @@ INCLUDE IRVINE32.INC
     promptPurchase BYTE "Do you want to see its listings? (Y to confirm): ", 0
     userConfirm BYTE ?
 
-    selectedItemMsg BYTE "You selected: ", 0Dh, 0Ah, "Unit Price: $", 0
+    selectedItemMsg BYTE "You selected: ", 0Dh, 0Ah, "Unit Price: RM", 0
     stockPrices DWORD 145, 210, 340, 820, 175, 500, 60, 525700
     bondPrices DWORD 1000, 5000, 1000, 800, 100, 1000, 1000, 1000
     indexPrices DWORD 420, 260, 380, 170, 70, 45, 80, 80
 
     promptQuantity BYTE "Enter quantity (-999 to go back): ", 0
     purchaseConfirm BYTE 0Dh, 0Ah, "Purchase successful!", 0Dh, 0Ah, 0
-    totalMsg BYTE "Total cost: $", 0
+    totalMsg BYTE "Total cost: RM", 0
 
     price1 DWORD 50
     price2 DWORD 100
@@ -339,7 +339,7 @@ INCLUDE IRVINE32.INC
                               "3. Index Funds", 0Dh, 0Ah,
                               "4. All Investments", 0Dh, 0Ah,
                               "Enter your choice (1-4): ", 0
-    riPromptChoice BYTE "Enter investment number or name to sell (999 to return): ", 0
+    riPromptChoice BYTE "Enter investment number or name to sell (9999 to return): ", 0
     invalidNumberMsg BYTE "Invalid investment number. Try again.", 0Dh, 0Ah, 0
     noMatchingInvestments BYTE "No matching investments found.", 0Dh, 0Ah, 0
     viewOption DWORD ?
@@ -355,6 +355,7 @@ INCLUDE IRVINE32.INC
     historyMsg BYTE "Purchase History: ", 0Dh, 0Ah, 0
 
     
+
 
     ;Data for ROI calc
     profit dword ?
@@ -373,8 +374,8 @@ INCLUDE IRVINE32.INC
     decPart DWORD ?
 
 
-    promptProfit byte "Enter the profit amount: ", 0
-    promptInitInvest byte "Enter the initial investment amount: ", 0
+    promptProfit byte "Enter profit amount: RM", 0
+    promptInitInvest byte "Enter initial investment amount: RM", 0
     displayROI byte "Return On Investment: ", 0
     errDivZero byte "Error: Cannot divide by zero!", 0
 
@@ -386,9 +387,56 @@ INCLUDE IRVINE32.INC
 	compoundInterest dword ?
 
     dot BYTE ".", 0
-    calcPromptPrincipal BYTE "Enter principal amount: $", 0
+    calcPromptPrincipal BYTE "Enter principal amount: RM", 0
     calcPromptCompound  BYTE "Enter number of times interest is compounded per year: ", 0
-	promptCI BYTE "Compount Interest: ", 0
+	promptCI BYTE "Compount Interest: RM", 0
+
+    ; Data for input validation
+    invalidDigitMsg BYTE "Invalid input, please enter digits as input.", 0Dh, 0Ah, 0
+    validationBuffer BYTE 16 DUP(0)
+    invalidValueRange BYTE "Invalid input. Please enter value between 100 - 100,000,000", 0Dh, 0Ah, 0
+    invalidRateYearRange BYTE "Invalid value. Please enter value between 1 - 99", 0Dh, 0Ah, 0
+
+    ; Data for calculator output
+    titleFV BYTE "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", 0Dh, 0Ah, 
+                 "          Future Value         ", 0Dh, 0Ah, 
+                 "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", 0Dh, 0Ah, 0Dh, 0Ah,
+                 "        PFV x (1 + r) ^ n      ", 0Dh, 0Ah, 0Dh, 0Ah, 0
+
+    titlePL BYTE "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", 0Dh, 0Ah, 
+                 "          Profit / Loss         ", 0Dh, 0Ah, 
+                 "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", 0Dh, 0Ah,
+                 "       PFV - IV - (TC + BF)     ", 0Dh, 0Ah, 0Dh, 0Ah, 0
+
+    titleROI BYTE "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", 0Dh, 0Ah, 
+                  "   Return on Investment (ROI)   ", 0Dh, 0Ah, 
+                  "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", 0Dh, 0Ah,
+                  "         (PA / IV) x 100        ", 0Dh, 0Ah, 0Dh, 0Ah, 0
+                  
+
+    titleCAGR BYTE "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", 0Dh, 0Ah, 
+                   "   Compound Annual Growth Rate (CAGR)   ", 0Dh, 0Ah, 
+                   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", 0Dh, 0Ah,
+                   "       [(FV / IV) ^ (1 / t)] - 1        ", 0Dh, 0Ah, 0Dh, 0Ah, 0
+
+    titleCI BYTE "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", 0Dh, 0Ah, 
+                 "        Compound Interest       ", 0Dh, 0Ah, 
+                 "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", 0Dh, 0Ah,
+                 "  PR x [1 + (r / n)] ^ (n x t)  ", 0Dh, 0Ah, 0Dh, 0Ah, 0
+
+    displayPFV BYTE         "Portfolio Value         PFV = RM", 0
+    displayRate BYTE        "Rate(%)                   r = ", 0
+    displayYear BYTE        "Years                     t = ", 0
+    displayProfit BYTE      "Profit Amount            PA = RM", 0
+    displayInitVal BYTE     "Initial Value            IV = RM", 0
+    displayFinalVal BYTE    "Final Value              FV = RM", 0
+    displayPA BYTE          "Principal Amount         PR = RM", 0
+    displayNumComp1 BYTE    "Number of times interest, n = ", 0
+    displayNumComp2 BYTE    "compounded per year    ", 0Dh, 0Ah, 0
+    displayTransCost BYTE   "Transaction Cost         TC = RM", 0
+    displayBrokeFees BYTE   "Broke Fees               BF = RM", 0
+
+    invalidFinalVal BYTE "Final Value must greater than Initial Value"
 
 .code
 ; Validation procedures
@@ -1551,7 +1599,7 @@ remove_by_number:
     call ParseInt
     
     ; Check if number is valid
-    cmp eax, 999
+    cmp eax, 9999
     je return_back
     cmp eax, 1
     jl invalid_number
@@ -2243,11 +2291,13 @@ display_bonds_list:
 
     call purchase_process
     call Clrscr
-    jmp investMenu
+    jmp display_bonds_list
+
 
 invalid_bond_choice:
     mov edx, OFFSET invalidMsg
     call InvalidTextDisplay
+    call WaitForEnter
     jmp display_bonds_list
 
 displayInvest3:
@@ -2296,11 +2346,12 @@ display_index_list:
 
     call purchase_process
     call Clrscr
-    jmp investMenu
+    jmp display_index_list
 
 invalid_index_choice:
     mov edx, OFFSET invalidMsg
     call InvalidTextDisplay
+    call WaitForEnter
     jmp display_index_list
 AddInvestment ENDP
 
@@ -2426,60 +2477,124 @@ calculator_loop:
     jmp calculator_loop
 
 calc_future_value:
+    ; Prompt for portfolio value
+prompt_port_value:    
     mov edx, OFFSET calcPromptValue
     call WriteString
-    call ReadInt
+    call ValidateDigit
+    call ValidateValueRange
+    cmp eax, 0
+    je prompt_port_value
     mov totalPortfolioValue, eax
-    
+
+    ; Prompt for annual interest rate
+prompt_rate1:
+    call Crlf
     mov edx, OFFSET calcPromptRate
     call WriteString
-    call ReadInt
+    call ValidateDigit
+    call ValidateRateYearRange
+    cmp eax, 0
+    je prompt_rate1
+
     mov rate, eax
 
-    mov eax, rate
-    imul eax, 100
-    mov rate, eax
-
+     ; Prompt for number of years
+prompt_year1:
+    call Crlf
     mov edx, OFFSET calcPromptYears
     call WriteString
-    call ReadInt
+    call ValidateDigit
+    call ValidateRateYearRange
+    cmp eax, 0
+    je prompt_year1
     mov years, eax
 
-    mov eax, rate
-    add eax, scale
-    mov ebx, eax
+    ; Future Value Calculation: FV = PV * (1 + r)^t
 
-    mov eax, scale
-    mov ecx, years
-    
+    ; Compute (1+r)
+    fild rate                      ; Load rate as floating-point
+    fld real100                    ; Load 100.0
+    fdivp st(1), st(0)             ; rate / 100
+    fld1
+    fadd                           ; (1 + r)
 
-exp_loop:
-    test ecx, ecx
-    jz done_exp
+    ; Compute exponent: t (years)
+    fild years                     ; Load years as floating-point
 
-    mul ebx
-    div scale
+    ; Stack: ST(0)=exponent, ST(1)=base
+    fxch						   ; Exchange ST(0) and ST(1)
+    call Pow                       ; ST(0) = (1 + r) ^ t
 
-    loop exp_loop
+    ; Multiply by PV
+    fild totalPortfolioValue
+    fmul						   ; PV * (1 + r) ^ t
 
-done_exp:
-    mul totalPortfolioValue
-    div scale
+    ; Scale to 2 decimal places and convert to int
+    fld real100
+    fmul
+    frndint
+    fist futureValue
 
-    mov futureValue, eax
-
-    mov edx, OFFSET calcFutureMsg
-    call WriteString
+    ; Format to 2 decimal places
     mov eax, futureValue
+    mov ebx, 100
+    xor edx, edx
+    div ebx
+
+    mov intPart, eax
+    mov decPart, edx
+
+    ; Display the result
+    call Crlf
+    mov edx, OFFSET titleFV
+    call WriteString
+
+    mov edx, OFFSET displayPFV
+    call WriteString
+    mov eax, totalPortfolioValue
+    call WriteDec
+    call Crlf
+
+    mov edx, OFFSET displayRate
+    call WriteString
+    mov eax, rate
+    call WriteDec
+    call Crlf
+
+    mov edx, OFFSET displayYear
+    call WriteString
+    mov eax, years
     call WriteDec
     call Crlf
     
+    call Crlf
+    mov edx, OFFSET calcFutureMsg
+    call WriteString
+    mov eax, intPart
+    call WriteDec
+    
+    mov edx, OFFSET dot
+    call WriteString
+
+    mov eax, decPart
+    cmp eax, 10
+    jae skipZero
+    mov al, '0'
+    call WriteChar
+    call Crlf
+
+    ; Wait for user to continue
+    call Crlf
+    call Crlf
     mov edx, OFFSET continueMsgPrompt
     call WriteString
     call ReadChar
     call Crlf
+    
     jmp calculator_loop
     
+
 calc_profit_loss:
     mov ecx, purchaseCount
     cmp ecx, 0
@@ -2503,19 +2618,57 @@ sum_loop:
     add eax, calcBrokeFees
     mov fees, eax                   ;Store total fees
 
+prompt_value1:
+    call Crlf
     mov edx, OFFSET calcPromptValue
     call WriteString
-    call ReadInt                    ; Read total portfolio value
+    call ValidateDigit                    ; Read total portfolio value
+    call ValidateValueRange
+    cmp eax, 0
+    je prompt_value1
+    mov totalPortfolioValue, eax
 
+    mov eax, totalPortfolioValue
     sub eax, initial_investment
     sub eax, fees
     mov profit_loss, eax            ; Store profit/loss result
+    
+    call Crlf
+    mov edx, OFFSET titlePL
+    call WriteString
 
-    mov edx, OFFSET calcProfitLossMsg
-    call WriteString   
+    mov edx, OFFSET displayPFV
+    call WriteString
+    mov eax, totalPortfolioValue
+    call WriteDec
+
+    call Crlf
+    mov edx, OFFSET displayInitVal
+    call WriteString
+    mov eax, initial_investment
     call WriteDec
     call Crlf
+
+    mov edx, OFFSET displayTransCost
+    call WriteString
+    mov eax, calcTransCost
+    call WriteDec
+    call Crlf
+
+    mov edx, OFFSET displayBrokeFees
+    call WriteString
+    mov eax, calcBrokeFees
+    call WriteDec
+    call Crlf
+
+    call Crlf
+    mov edx, OFFSET calcProfitLossMsg
+    call WriteString   
+    mov eax, profit_loss
+    call WriteInt
+    call Crlf
     
+    call Crlf
     mov edx, OFFSET continueMsgPrompt
     call WriteString
     call ReadChar
@@ -2527,25 +2680,31 @@ no_purchases:
     mov edx, 0
     mov edx, OFFSET noPurchaseMsg
     call WriteString
-    call Crlf
-    mov edx, OFFSET enterMsg
-    call WriteString
-    call ReadChar
-    call Crlf
-    jmp calculator_loop
+    
+    jmp exit_calc
 
 calc_roi:
 
     ; Input profit
+prompt_profit:
+    call Crlf
     mov edx, offset promptProfit
     call WriteString
-    call ReadInt
+    call ValidateDigit
+    call ValidateValueRange
+    cmp eax, 0
+    je prompt_profit
     mov profit, eax
 
     ; Input initial investment
+prompt_ii1:
+    call Crlf
     mov edx, offset promptInitInvest
     call WriteString
-    call ReadInt
+    call ValidateDigit
+    call ValidateValueRange
+    cmp eax, 0
+    je prompt_ii1
     mov initialInvest, eax
 
     ; Check for division by zero
@@ -2560,6 +2719,23 @@ calc_roi:
     mov roi, eax
 
     ; Display result
+    call Crlf
+    mov edx, OFFSET titleROI
+    call WriteString
+
+    mov edx, OFFSET displayProfit
+    call WriteString
+    mov eax, profit
+    call WriteDec
+    call Crlf
+
+    mov edx, OFFSET displayInitVal
+    call WriteString
+    mov eax, initialInvest
+    call WriteDec
+    call Crlf
+    
+    call Crlf
     mov edx, offset displayROI
     call WriteString
     mov eax, roi
@@ -2571,32 +2747,53 @@ calc_roi:
 
 division_error:
     mov edx, offset errDivZero
-    call WriteString
+    call InvalidTextDisplay
     call Crlf
     
-    mov edx, OFFSET continueMsgPrompt
-    call WriteString
-    call ReadChar
-    call Crlf
-    jmp calculator_loop
+    jmp exit_calc
     
 calc_cagr:
     ;Prompt for initial value
+prompt_ii2:
+    call Crlf
     mov edx, OFFSET calcPromptInitialVal
     call WriteString
-    call ReadInt
+    call ValidateDigit
+    call ValidateValueRange
+    cmp eax, 0
+    je prompt_ii2
     mov initialValue, eax
     
     ;Prompt for Final Value
+prompt_final1:
+    call Crlf
     mov edx, OFFSET calcPromptFinalVal
     call WriteString
-    call ReadInt
+    call ValidateDigit
+    call ValidateValueRange
+    cmp eax, 0
+    je prompt_final1
+    mov ebx, initialValue
+    cmp eax, ebx
+    ja storeFinalVal
+
+    mov edx, OFFSET invalidFinalVal
+    call InvalidTextDisplay
+    jmp prompt_final1
+
+
+storeFinalVal:
     mov finalValue, eax
 
     ;Prompt for Years
+prompt_year2:
+    call Crlf
     mov edx, OFFSET calcPromptYears
     call WriteString
-    call ReadInt
+    call ValidateDigit
+    call ValidateRateYearRange
+    cmp eax, 0
+    je prompt_year2
     mov years, eax
 
     ;Calculation
@@ -2641,6 +2838,29 @@ calc_cagr:
     mov decPart, edx
 
     ;output CAGR
+    call Crlf
+    mov edx, OFFSET titleCAGR
+    call WriteString
+    
+    mov edx, OFFSET displayInitVal
+    call WriteString
+    mov eax, initialValue
+    call WriteDec
+    call Crlf
+
+    mov edx, OFFSET displayFinalVal
+    call WriteString
+    mov eax, finalValue
+    call WriteDec
+    call Crlf
+
+    mov edx, OFFSET displayYear
+    call WriteString
+    mov eax, years
+    call WriteDec
+    call Crlf
+
+    call Crlf
     mov edx, OFFSET calcCAGRMsg
     call WriteString
 
@@ -2662,36 +2882,52 @@ SkipZeroPercent:
     call WriteChar
     call Crlf
 
-    mov edx, OFFSET continueMsgPrompt
-    call WriteString
-    call ReadChar
-    call Crlf
-    jmp calculator_loop
+    jmp exit_calc
     
 calc_compound:
     
     ; Input Principal
+prompt_pv:
+    call Crlf
     mov edx, OFFSET calcPromptPrincipal
     call WriteString
-    call ReadInt
+    call ValidateDigit
+    call ValidateValueRange
+    cmp eax, 0
+    je prompt_pv
     mov principalAmount, eax
 
     ; Input Rate
+prompt_rate2:
+    call Crlf
     mov edx, OFFSET calcPromptRate
     call WriteString
-    call ReadInt
+    call ValidateDigit
+    call ValidateRateYearRange
+    cmp eax, 0
+    je prompt_rate2
     mov rate, eax
 
     ; Input Num of Compound
+prompt_compound:
+    call Crlf
     mov edx, OFFSET calcPromptCompound
     call WriteString
-    call ReadInt
+    call ValidateDigit
+    call ValidateRateYearRange
+    cmp eax, 0
+    je prompt_compound
     mov numCompound, eax
 
     ; Input Years
+prompt_year3:
+    call Crlf
     mov edx, OFFSET calcPromptYears
     call WriteString
-    call ReadInt
+    call ValidateDigit
+    call ValidateRateYearRange
+    cmp eax, 0
+    je prompt_year3
     mov years, eax
 
     ; Compound Interest Calculation = P * (1 + r/n)^(n * t)
@@ -2736,6 +2972,37 @@ calc_compound:
     mov decPart, edx
 
     ; Display result
+    call Crlf
+    mov edx, OFFSET titleCI
+    call WriteString
+
+    mov edx, OFFSET displayPA
+    call WriteString
+    mov eax, principalAmount
+    call WriteDec
+    call Crlf
+
+    mov edx, OFFSET displayRate
+    call WriteString
+    mov eax, rate
+    call WriteDec
+    call Crlf
+
+    mov edx, OFFSET displayNumComp1
+    call WriteString
+    mov eax, numCompound
+    call WriteDec
+    call Crlf
+    mov edx, OFFSET displayNumComp2
+    call WriteString
+
+    mov edx, OFFSET displayYear
+    call WriteString
+    mov eax, years
+    call WriteDec
+    call Crlf
+
+    call Crlf
     mov edx, OFFSET promptCI
     call WriteString
 
@@ -2750,14 +3017,15 @@ calc_compound:
     jae skipZero
     mov al, '0'
     call WriteChar
-    call Crlf
 
 SkipZero:
     mov eax, decPart
     call WriteDec
     call Crlf
+
     
 exit_calc:
+    call Crlf
     mov edx, OFFSET continueMsgPrompt
     call WriteString
     call ReadChar
@@ -2998,6 +3266,100 @@ SuccessTextDisplay PROC
     call SetTextColor
     ret
 SuccessTextDisplay ENDP
+
+ValidateDigit PROC
+
+    mov edi, OFFSET validationBuffer
+    mov ecx, SIZEOF validationBuffer
+    mov al, 0
+clearloop:
+    mov [edi], al
+    inc edi
+    loop clearloop
+
+    mov edx, OFFSET validationBuffer
+    mov ecx, SIZEOF validationBuffer
+    call ReadString
+
+    mov esi, edx
+    mov ecx, eax
+    jecxz invalid
+
+check_digit:
+    mov al, [esi]
+    cmp al, '0'
+    jb invalid
+    cmp al, '9'
+    ja invalid
+    inc esi
+    loop check_digit
+
+    mov esi, edx
+    xor eax, eax
+    xor ebx, ebx
+
+convertLoop:
+    mov bl, [esi]
+    cmp bl, 0
+    je conversionDone
+
+    mov edx, 10
+    mul edx
+
+    sub bl, '0'
+    add eax, ebx
+
+    inc esi
+    jmp convertLoop
+
+conversionDone:
+    ret
+
+invalid:
+    mov edx, OFFSET invalidDigitMsg
+    call InvalidTextDisplay
+    mov eax, 0
+    ret
+
+ValidateDigit ENDP
+
+ValidateValueRange PROC
+    cmp eax, 0
+    je return
+    cmp eax, 100
+    jb invalid_range
+    cmp eax, 100000000
+    ja invalid_range
+
+return:
+    ret
+
+invalid_range:
+    mov edx, OFFSET invalidValueRange
+    call InvalidTextDisplay
+    mov eax, 0
+    ret
+
+ValidateValueRange ENDP
+
+ValidateRateYearRange PROC
+    cmp eax, 0
+    je return
+    cmp eax, 1
+    jb invalid_range
+    cmp eax, 100
+    ja invalid_range
+
+return:
+    ret
+
+invalid_range:
+    mov edx, OFFSET invalidRateYearRange
+    call InvalidTextDisplay
+    mov eax, 0
+    ret
+
+ValidateRateYearRange ENDP
 
 main PROC
     call InitializeInvestmentData
