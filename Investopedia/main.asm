@@ -123,7 +123,7 @@ INCLUDE IRVINE32.INC
                            "||       INVESTMENT DETAILS           ||", 0Dh, 0Ah, 
                            "||====================================||", 0Dh, 0Ah, 0
     riPromptName BYTE "Enter investment name to sell: ", 0
-    riPromptQuantity BYTE "Enter quantity to sell (or all available): ", 0
+    riPromptQuantity BYTE "Enter quantity to sell: ", 0
     sellQuantity DWORD ?
     investNameBuffer BYTE 50 DUP(0)
     stockTemp BYTE 50 DUP(0)
@@ -206,17 +206,17 @@ INCLUDE IRVINE32.INC
                             "4. Back", 0Dh, 0Ah, 0Dh, 0Ah,
                             "Enter the choice of your investment (1-4): ", 0
 
-    invest1 BYTE 0Dh, 0Ah, "Investment: Stocks / Equities", 0Dh, 0Ah
+    stockInfo BYTE 0Dh, 0Ah, "Investment: Stocks / Equities", 0Dh, 0Ah
             BYTE "Risk Level: Medium - High", 0Dh, 0Ah
             BYTE "Description: Higher risk, higher potential returns. Suitable for long-term investors.", 0Dh, 0Ah
             BYTE "Recommended Starting Capital: RM1,000", 0Dh, 0Ah, 0
 
-    invest2 BYTE 0Dh, 0Ah, "Investment: Bonds", 0Dh, 0Ah
+    bondInfo BYTE 0Dh, 0Ah, "Investment: Bonds", 0Dh, 0Ah
             BYTE "Risk Level: Medium - Low", 0Dh, 0Ah
             BYTE "Description: Lower risk, moderate returns. Suitable for medium to long-term investors (3+ years).", 0Dh, 0Ah
             BYTE "Recommended Starting Capital: RM500", 0Dh, 0Ah, 0
 
-    invest3 BYTE 0Dh, 0Ah, "Investment: Index Funds", 0Dh, 0Ah
+    indexInfo BYTE 0Dh, 0Ah, "Investment: Index Funds", 0Dh, 0Ah
             BYTE "Risk Level: Medium", 0Dh, 0Ah
             BYTE "Description: Moderate risk, good diversification. Suitable for long-term investors (5+ years).", 0Dh, 0Ah
             BYTE "Recommended Starting Capital: RM1,000", 0Dh, 0Ah, 0
@@ -339,7 +339,7 @@ INCLUDE IRVINE32.INC
                               "3. Index Funds", 0Dh, 0Ah,
                               "4. All Investments", 0Dh, 0Ah,
                               "Enter your choice (1-4): ", 0
-    riPromptChoice BYTE "Enter investment number or name to sell (9999 to return): ", 0
+    riPromptChoice BYTE "Enter investment number to sell (9999 to return): ", 0
     invalidNumberMsg BYTE "Invalid investment number. Try again.", 0Dh, 0Ah, 0
     noMatchingInvestments BYTE "No matching investments found.", 0Dh, 0Ah, 0
     viewOption DWORD ?
@@ -436,7 +436,10 @@ INCLUDE IRVINE32.INC
     displayTransCost BYTE   "Transaction Cost         TC = RM", 0
     displayBrokeFees BYTE   "Broke Fees               BF = RM", 0
 
-    invalidFinalVal BYTE "Final Value must greater than Initial Value"
+    invalidFinalVal BYTE "Final Value must greater than Initial Value", 0Dh, 0Ah, 0
+    errorNameFormat BYTE "Name must be contain alphabets only! ", 0Dh, 0Ah, 0
+    errorQuantity BYTE "Invalid quantity, please enter quantity between 1 - 999!", 0Dh, 0Ah, 0
+    invalidQuantityMsg BYTE "Invalid quantity, please enter the available amount! ", 0Dh, 0Ah, 0
 
 .code
 ; Validation procedures
@@ -455,7 +458,29 @@ count_chars:
 check_length:
     cmp ecx, 2
     jle invalid_name
-    mov eax, 1  ; Valid
+
+    mov esi, OFFSET inputName
+check_char:
+    mov al, [esi]
+    cmp al, ' '
+    je nextChar
+    cmp al, 'A'
+    jb checkLowercase
+    cmp al, 'Z'
+    jbe nextChar
+    
+
+checkLowercase:
+    cmp al, 'a'
+    jb invalid_name_format
+    cmp al, 'z'
+    ja invalid_name_format
+
+nextChar:
+    inc esi
+    loop check_char
+    
+    mov eax, 1
     ret
 
 invalid_name:
@@ -463,6 +488,13 @@ invalid_name:
     call InvalidTextDisplay
     mov eax, 0  ; Invalid
     ret
+
+invalid_name_format:
+    mov edx, OFFSET errorNameFormat
+    call InvalidTextDisplay
+    mov eax, 0
+    ret
+
 ValidateName ENDP
 
 ValidateEmail PROC USES esi
@@ -613,7 +645,7 @@ user_page_start:
     jmp user_page_start
     
 go_to_registration:
-    call Registration
+    call registration
     jmp user_page_start
     
 go_to_login:
@@ -765,7 +797,8 @@ SaveUserData PROC
     jne file_opened_ok
     
     mov edx, OFFSET fileOpenError
-    call WriteString
+    call InvalidTextDisplay
+    call WaitForEnter
     ret
     
 file_opened_ok:
@@ -1098,7 +1131,8 @@ user_found:
     mov edx, OFFSET otpSuccessMsg
     call SuccessTextDisplay
     call Crlf
-    
+
+prompt_new_pass:
     ; Now prompt for new password
     mov edx, OFFSET promptNewPass
     call WriteString
@@ -1127,7 +1161,7 @@ password_reused:
     call InvalidTextDisplay
     call Crlf  ; Add a newline for better visibility
     call WaitForEnter  ; Wait for user to acknowledge the error
-    jmp user_found  ; Try again with a different password
+    jmp prompt_new_pass  ; Try again with a different password
     
 passwords_different:
     pop esi
@@ -1154,7 +1188,7 @@ end_copy_password:
     
     call ValidatePassword
     cmp eax, 0
-    je user_found  ; If invalid, try again from OTP step
+    je prompt_new_pass
     
     ; Confirm new password
     mov edx, OFFSET promptConfirmNewPass
@@ -1203,7 +1237,7 @@ passwords_mismatch:
     pop ebx     ; Clean up the stack if passwords don't match
     mov edx, OFFSET errorPasswordMismatch
     call InvalidTextDisplay
-    jmp user_found  ; Try again from OTP step
+    jmp prompt_new_pass  ; Try again from OTP step
     
 otp_invalid:
     mov edx, OFFSET otpInvalidMsg
@@ -1441,6 +1475,8 @@ display_done:
 DisplayInvestmentName ENDP
 
 RemoveInvestment PROC
+    
+viewInvestment:    
     call Clrscr
     mov edx, OFFSET riPage
     call WriteString
@@ -1552,46 +1588,9 @@ skip_display:
 
     ; Check if input is a number
     call IsNumber
-    cmp eax, 1
-    je remove_by_number
-    
-    ; Find the investment by name
-    mov ecx, displayCount
-    mov esi, 0
-    
-find_investment_loop:
-    push ecx
-    push esi
-    
-    ; Get actual index from display index
-    mov ebx, displayToActualMap[esi*4]
-    
-    ; Get investment type and item
-    mov eax, purchaseTypes[ebx*4]
-    mov ebx, purchaseItems[ebx*4]
-    
-    ; Call helper to get name in stockTemp
-    call GetInvestmentName
-    
-    ; Compare with input name (case-insensitive)
-    mov edi, OFFSET investNameBuffer
-    mov esi, OFFSET stockTemp
-    call CompareStringsIgnoreCase
-    
-    pop esi
-    pop ecx
-    
     cmp eax, 0
-    je found_investment
+    je invalid_number
     
-    inc esi
-    loop find_investment_loop
-    
-    ; Investment not found
-    mov edx, OFFSET riError
-    call WriteString
-    call WaitForEnter
-    ret
     
 remove_by_number:
     ; Convert string to number
@@ -1624,6 +1623,8 @@ ask_quantity:
     mov sellQuantity, eax
     
     ; Check if quantity is valid
+    cmp eax, 0
+    jle invalid_quantity
     cmp eax, purchaseQuantities[esi*4]
     jg invalid_quantity
     
@@ -1682,13 +1683,13 @@ got_price:
     mov edx, OFFSET riSuccess
     call SuccessTextDisplay
     call WaitForEnter
-    ret
+    jmp viewInvestment
     
 invalid_view_option:
     mov edx, OFFSET invalidMsg
     call WriteString
     call WaitForEnter
-    ret
+    jmp viewInvestment
     
 no_matching_investments:
     mov edx, OFFSET noMatchingInvestments
@@ -1698,15 +1699,15 @@ no_matching_investments:
     
 invalid_number:
     mov edx, OFFSET invalidNumberMsg
-    call WriteString
-    call WaitForEnter
-    ret
-    
-invalid_quantity:
-    mov edx, OFFSET invalidMsg
     call InvalidTextDisplay
     call WaitForEnter
-    ret
+    jmp viewInvestment
+    
+invalid_quantity:
+    mov edx, OFFSET invalidQuantityMsg
+    call InvalidTextDisplay
+    call WaitForEnter
+    jmp viewInvestment
     
 no_investments:
     mov edx, OFFSET noPurchaseMsg
@@ -1757,7 +1758,7 @@ last_investment:
     mov edx, OFFSET riSuccess
     call SuccessTextDisplay
     call WaitForEnter
-    ret
+    jmp viewInvestment
 
 return_back:
     ret
@@ -2173,11 +2174,11 @@ investMenu:
     call Crlf
 
     cmp investChoice, 1
-    je displayInvest1
+    je displayStockInfo
     cmp investChoice, 2
-    je displayInvest2
+    je displayBondInfo
     cmp investChoice, 3
-    je displayInvest3
+    je displayIndexInfo
     cmp investChoice, 4
     je return_to_menu
 
@@ -2191,10 +2192,9 @@ investMenu:
 return_to_menu:
     ret
 
-displayInvest1:
-    mov edx, OFFSET invest1
+displayStockInfo:
+    mov edx, OFFSET stockInfo
     call WriteString
-    mov eax, price1
     call Purchase
     
     cmp userConfirm, 'Y'
@@ -2245,8 +2245,8 @@ invalid_stock_choice:
     call WaitForEnter
     jmp display_stocks_list
 
-displayInvest2:
-    mov edx, OFFSET invest2
+displayBondInfo:
+    mov edx, OFFSET bondInfo
     call WriteString
     mov eax, price2
     call Purchase
@@ -2300,8 +2300,8 @@ invalid_bond_choice:
     call WaitForEnter
     jmp display_bonds_list
 
-displayInvest3:
-    mov edx, OFFSET invest3
+displayIndexInfo:
+    mov edx, OFFSET indexInfo
     call WriteString
     mov eax, price3
     call Purchase
@@ -2356,7 +2356,6 @@ invalid_index_choice:
 AddInvestment ENDP
 
 Purchase PROC
-    mov unitPrice, eax
 
     mov edx, OFFSET promptPurchase
     call WriteString
@@ -2369,26 +2368,28 @@ Purchase PROC
 Purchase ENDP
 
 purchase_process PROC
+
+read_quantity:
     call Crlf
     mov edx, OFFSET promptQuantity
     call WriteString
-    
-read_quantity:
+   
     call ReadInt
     mov quantity, eax
 
     cmp eax, -999
     je purchase_return
+
+    cmp eax, 0
+    jle invalidQuantity
     
     ; Check if quantity exceeds maximum limit (1000)
     cmp eax, 1000
-    jle quantity_ok
+    jl quantity_ok
     
     ; If quantity is too large, display error and ask again
     mov edx, OFFSET maxQuantityMsg
-    call WriteString
-    mov edx, OFFSET promptQuantity
-    call WriteString
+    call InvalidTextDisplay
     jmp read_quantity
     
 quantity_ok:
@@ -2442,6 +2443,12 @@ skip_history_update:
     call WriteString
     call ReadChar
     call Crlf
+    jmp purchase_return
+
+invalidQuantity:
+    mov edx, OFFSET errorQuantity
+    call InvalidTextDisplay
+    jmp read_quantity
 
 purchase_return:
     ret
@@ -3190,7 +3197,7 @@ return_to_menu:
     ret
     
 Settings ENDP
-
+    
 CompareStrings PROC
     push ecx
     push esi
@@ -3360,6 +3367,39 @@ invalid_range:
     ret
 
 ValidateRateYearRange ENDP
+
+ValidateAlphabeticInput PROC
+    mov ecx, SIZEOF validationBuffer
+    mov esi, OFFSET validationBuffer
+    cmp ecx, 0
+    je invalid
+
+check_char:
+    mov al, [esi]
+    cmp al, 'A'
+    jb checkLowercase
+    cmp al, 'Z'
+    jbe nextChar
+
+checkLowercase:
+    cmp al, 'a'
+    jb invalid
+    cmp al, 'z'
+    ja invalid
+
+nextChar:
+    inc esi
+    loop check_char
+
+    mov eax, 1
+    ret
+
+invalid:
+    mov eax, 0
+    ret
+
+ValidateAlphabeticInput ENDP
+
 
 main PROC
     call InitializeInvestmentData
