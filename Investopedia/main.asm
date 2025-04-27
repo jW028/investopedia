@@ -22,9 +22,8 @@ INCLUDE IRVINE32.INC
                        "||====================================||", 0Dh, 0Ah, 0
     userPageOptions BYTE "1. Register New Account", 0Dh, 0Ah,
                          "2. Login", 0Dh, 0Ah,
-                         "3. Reset Password", 0Dh, 0Ah,
-                         "4. Exit", 0Dh, 0Ah, 0Dh, 0Ah,
-                         "Enter your choice (1-4): ", 0
+                         "3. Exit", 0Dh, 0Ah, 0Dh, 0Ah,
+                         "Enter your choice (1-3): ", 0
                       
     registrationTitle BYTE "||====================================||", 0Dh, 0Ah,
                            "||  INVESTOPEDIA - USER REGISTRATION  ||", 0Dh, 0Ah, 
@@ -52,9 +51,9 @@ INCLUDE IRVINE32.INC
     promptLoginPass   BYTE "Enter your password: ", 0
     loginSuccessMsg   BYTE "Login successful!", 0Dh, 0Ah, 0
     loginFailMsg      BYTE "Invalid email or password.", 0Dh, 0Ah, 0
-    loginOptionsMsg    BYTE "1. Change Password", 0Dh, 0Ah,
-                        "2. Try Again", 0Dh, 0Ah,
-                        "3. Register New Account", 0Dh, 0Ah,
+    loginOptionsMsg    BYTE "1. Login Again", 0Dh, 0Ah,
+                        "2. Register New Account", 0Dh, 0Ah,
+                        "3. Return Back", 0Dh, 0Ah,
                         "Enter your choice (1-3): ", 0
     changePassTitle   BYTE "||====================================||", 0Dh, 0Ah,
                            "||        CHANGE PASSWORD             ||", 0Dh, 0Ah, 
@@ -85,13 +84,20 @@ INCLUDE IRVINE32.INC
 
     currentUserIndex  DWORD ?
     loginSuccess      BYTE 0
-    userFileName    BYTE "users.dat", 0
+    userFileName    BYTE "users.txt", 0
+    tempFileName    BYTE "temp.txt", 0
     fileHandle      DWORD ?
+    tempFileHandle DWORD ?
     bytesWritten    DWORD ?
     bytesRead       DWORD ?
     fileOpenError   BYTE "Error opening file.", 0Dh, 0Ah, 0
     fileWriteError  BYTE "Error writing to file.", 0Dh, 0Ah, 0
     fileReadError   BYTE "Error reading from file.", 0Dh, 0Ah, 0
+    fileBuffer BYTE 1024 DUP(0)
+    fileContent BYTE 120 DUP(0)
+    isLoggedIn BYTE 0
+    currentUser BYTE MAX_NAME_LENGTH DUP(0)
+    errorDeleteUser BYTE "Error delete user", 0Dh, 0Ah, 0
 
     ; Added for the second login procedure
     promptUser        BYTE "Enter your username: ", 0
@@ -154,17 +160,17 @@ INCLUDE IRVINE32.INC
     calcResultMsg       BYTE "Calculation Result: RM", 0
     calcPercentMsg      BYTE "Calculation Result: ", 0
     calcFutureMsg       BYTE "Future Value: RM", 0
-    calcProfitLossMsg   BYTE "The total profit or loss: RM", 0
+    calcProfitLossMsg   BYTE "(RM+XXXX = Profit / RM-XXXX = Loss)", 0Dh, 0Ah,
+                             "The total profit or loss: RM", 0
     calcInitialInvestmentMsg    BYTE "Your initial investment is: ", 0
     
     settingsPage BYTE "||====================================||", 0Dh, 0Ah,
                       "||             SETTINGS               ||", 0Dh, 0Ah, 
                       "||====================================||", 0Dh, 0Ah, 0
-    settingsOptions BYTE "1. Delete Account", 0Dh, 0Ah,
-                     "2. Logout", 0Dh, 0Ah,
-                     "3. View Information", 0Dh, 0Ah,
-                     "4. Back to Main Menu", 0Dh, 0Ah, 0Dh, 0Ah,
-                     "Enter your choice (1-4): ", 0
+    settingsOptions BYTE "1. Logout", 0Dh, 0Ah,
+                     "2. View Information", 0Dh, 0Ah,
+                     "3. Back to Main Menu", 0Dh, 0Ah, 0Dh, 0Ah,
+                     "Enter your choice (1-3): ", 0
     deleteConfirmMsg BYTE "Are you sure you want to delete your account? (Y/N): ", 0
     accountDeletedMsg BYTE "Account deleted successfully. Returning to login page.", 0Dh, 0Ah, 0
     viewInfoPage BYTE "||====================================||", 0Dh, 0Ah,
@@ -221,32 +227,32 @@ INCLUDE IRVINE32.INC
             BYTE "Description: Moderate risk, good diversification. Suitable for long-term investors (5+ years).", 0Dh, 0Ah
             BYTE "Recommended Starting Capital: RM1,000", 0Dh, 0Ah, 0
 
-    stockNames BYTE "Apple (AAPL)", 0
-           BYTE "Tesla (TSLA)", 0
-           BYTE "Microsoft (MSFT)", 0
-           BYTE "NVIDIA (NVDA)", 0
-           BYTE "Amazon (AMZN)", 0
-           BYTE "Meta (META)", 0
-           BYTE "Coca-Cola (KO)", 0
-           BYTE "Berkshire (BRK)", 0
+    stockNames BYTE "Apple (AAPL)                   ", 0
+               BYTE "Tesla (TSLA)                   ", 0
+               BYTE "Microsoft (MSFT)               ", 0
+               BYTE "NVIDIA (NVDA)                  ", 0
+               BYTE "Amazon (AMZN)                  ", 0
+               BYTE "Meta (META)                    ", 0
+               BYTE "Coca-Cola (KO)                 ", 0
+               BYTE "Berkshire (BRK)                ", 0
 
-    bondNames BYTE "U.S. Treasury Bond", 0
-          BYTE "Municipal Bond", 0
-          BYTE "Corporate Bond", 0
-          BYTE "High-Yield Bond", 0
-          BYTE "Government Savings Bond", 0
-          BYTE "Inflation-Protected Bond", 0
-          BYTE "Green Bond", 0
-          BYTE "Convertible Bond", 0
+    bondNames BYTE "U.S. Treasury Bond              ", 0
+              BYTE "Municipal Bond                  ", 0
+              BYTE "Corporate Bond                  ", 0
+              BYTE "High-Yield Bond                 ", 0
+              BYTE "Government Savings Bond         ", 0
+              BYTE "Inflation-Protected Bond        ", 0
+              BYTE "Green Bond                      ", 0
+              BYTE "Convertible Bond                ", 0
 
-    indexNames BYTE "S&P 500", 0
-           BYTE "Total Stock Market", 0
-           BYTE "Nasdaq-100", 0
-           BYTE "Russell 2000", 0
-           BYTE "International Index", 0
-           BYTE "Emerging Markets", 0
-           BYTE "Dividend Growth", 0
-           BYTE "Bond Index", 0
+    indexNames BYTE "S&P 500                        ", 0
+               BYTE "Total Stock Market             ", 0
+               BYTE "Nasdaq-100                     ", 0
+               BYTE "Russell 2000                   ", 0
+               BYTE "International Index            ", 0
+               BYTE "Emerging Markets               ", 0
+               BYTE "Dividend Growth                ", 0
+               BYTE "Bond Index                     ", 0
 
     stockNamePtrs DWORD 8 DUP(?)
     bondNamePtrs DWORD 8 DUP(?)
@@ -298,15 +304,16 @@ INCLUDE IRVINE32.INC
     purchaseItems DWORD 10 DUP(0)      ; Item number within each type (1-8)
     purchaseQuantities DWORD 10 DUP(0) ; Quantity of each purchase
 
-    tableHeader BYTE "||=================================================||", 0Dh, 0Ah,
-                     "||  #  |       Investment       | Quantity | Value ||", 0Dh, 0Ah,
-                     "||=================================================||", 0Dh, 0Ah, 0
-    tableRow BYTE "||  ", 0
+    tableHeader BYTE "||===========================================================||", 0Dh, 0Ah,
+                     "||  #  |       Investment                | Quantity => Value ||", 0Dh, 0Ah,
+                     "||===========================================================||", 0Dh, 0Ah, 0
+                        
+    tableRow BYTE "    ", 0
     tableSep1 BYTE "  | ", 0
     tableSep2 BYTE " | ", 0
-    tableSep3 BYTE " | RM", 0
-    tableEnd BYTE "  ||", 0Dh, 0Ah, 0
-    tableFooter BYTE "||=================================================||", 0Dh, 0Ah, 0
+    tableSep3 BYTE " => RM", 0
+    tableEnd BYTE "    ", 0Dh, 0Ah, 0
+    tableFooter BYTE "||===========================================================||", 0Dh, 0Ah, 0
     
 
     tempFloat REAL8 0.0
@@ -363,7 +370,7 @@ INCLUDE IRVINE32.INC
     roi dword ?
 
     ;Data for CAGR calc
-    calcPromptInitialVal BYTE "Enter Initial Value: ", 0
+    calcPromptInitialVal BYTE "Your Initial Value: ", 0
     calcPromptFinalVal BYTE "Enter Final Value: ", 0
     calcCAGRMsg         BYTE "The Compound Annual Growth Rate: ", 0
     finalValue DWORD ?
@@ -392,7 +399,7 @@ INCLUDE IRVINE32.INC
 	promptCI BYTE "Compount Interest: RM", 0
 
     ; Data for input validation
-    invalidDigitMsg BYTE "Invalid input, please enter digits as input.", 0Dh, 0Ah, 0
+    invalidDigitMsg BYTE "Invalid input (including '-'), please enter digits as input.", 0Dh, 0Ah, 0
     validationBuffer BYTE 16 DUP(0)
     invalidValueRange BYTE "Invalid input. Please enter value between 100 - 100,000,000", 0Dh, 0Ah, 0
     invalidRateYearRange BYTE "Invalid value. Please enter value between 1 - 99", 0Dh, 0Ah, 0
@@ -440,6 +447,18 @@ INCLUDE IRVINE32.INC
     errorNameFormat BYTE "Name must be contain alphabets only! ", 0Dh, 0Ah, 0
     errorQuantity BYTE "Invalid quantity, please enter quantity between 1 - 999!", 0Dh, 0Ah, 0
     invalidQuantityMsg BYTE "Invalid quantity, please enter the available amount! ", 0Dh, 0Ah, 0
+
+    emailBuffer BYTE MAX_EMAIL_LENGTH DUP(0)
+    passBuffer BYTE MAX_PASSWORD_LENGTH DUP(0)
+    nameBuffer BYTE MAX_NAME_LENGTH DUP(0)
+    errorLoginFile BYTE "Error open login file", 0Dh, 0Ah, 0
+    errorLoginRead BYTE "Error file reading", 0Dh, 0Ah, 0
+    invalidLoginEmail BYTE "Invalid login email", 0Dh, 0Ah, 0
+    invalidLoginPass BYTE "Invalid login pass", 0Dh, 0Ah , 0
+    tempFileContent BYTE 120 DUP(0)
+
+    emailNotExistMsg BYTE "Email does not registered." , 0Dh,0Ah, 0
+
 
 .code
 ; Validation procedures
@@ -535,6 +554,44 @@ invalid_email:
     ret
 ValidateEmail ENDP
 
+ValidateLoginEmail PROC USES esi
+    mov esi, OFFSET inputLoginEmail
+    mov al, 0  ; '@' flag
+    mov bl, 0  ; '.' flag
+
+check_email_chars:
+    mov cl, [esi]
+    cmp cl, 0
+    je check_email_flags
+
+    cmp cl, '@'
+    jne check_dot
+    mov al, 1
+
+check_dot:
+    cmp cl, '.'
+    jne next_char
+    mov bl, 1
+
+next_char:
+    inc esi
+    jmp check_email_chars
+
+check_email_flags:
+    cmp al, 1
+    jne invalid_email
+    cmp bl, 1
+    jne invalid_email
+    mov eax, 1  ; Valid
+    ret
+
+invalid_email:
+    mov edx, OFFSET errorEmailInvalid
+    call InvalidTextDisplay
+    mov eax, 0  ; Invalid
+    ret
+ValidateLoginEmail ENDP
+
 ValidatePassword PROC USES esi ecx
     mov esi, OFFSET inputPassword
     mov ecx, 0
@@ -606,14 +663,22 @@ finish_password_input:
 ReadPasswordWithMask ENDP
 
 ; Copy string from source to destination
-CopyString PROC USES esi edi ebx
+CopyString PROC
+    push eax            ; Save registers we'll modify
+    push esi
+    push edi
+    
 copy_loop:
-    mov al, [edi]
-    mov [ebx], al
-    inc edi
-    inc ebx
-    cmp al, 0
-    jne copy_loop
+    mov al, [esi]       ; Load byte from source
+    mov [edi], al       ; Store byte in destination
+    inc esi             ; Move to next source byte
+    inc edi             ; Move to next destination byte
+    cmp al, 0           ; Check for null terminator
+    jne copy_loop       ; Continue if not null
+    
+    pop edi             ; Restore registers
+    pop esi
+    pop eax
     ret
 CopyString ENDP
 
@@ -633,9 +698,7 @@ user_page_start:
     je go_to_registration
     cmp eax, 2  
     je go_to_login
-    cmp eax, 3 
-    je go_to_reset_password
-    cmp eax, 4  
+    cmp eax, 3
     je exit_program
     
     ; Invalid option
@@ -653,13 +716,9 @@ go_to_login:
     cmp loginSuccess, 1
     je exit_to_menu
     jmp user_page_start
-    
-go_to_reset_password:
-    call ChangePassword
-    jmp user_page_start
+
     
 exit_program:
-    call SaveUserData
     exit
     
 exit_to_menu:
@@ -668,13 +727,14 @@ UserPage ENDP
 
 
 Registration PROC
+
+
 registration_start:
     call Clrscr
-    mov edx, OFFSET registrationTitle
+    mov edx, OFFSET registrationtitle
     call WriteString
     call Crlf
 
-    ; Name input
 input_name:
     mov edx, OFFSET promptName
     call WriteString
@@ -685,60 +745,34 @@ input_name:
     cmp eax, 0
     je input_name
 
-    ; Email input
 input_email:
     mov edx, OFFSET promptEmail
     call WriteString
     mov edx, OFFSET inputEmail
     mov ecx, MAX_EMAIL_LENGTH
     call ReadString
+    call CheckEmailExists
+    cmp eax, 0
+    je email_existed
     call ValidateEmail
-    cmp eax, 0
-    je input_email
-    mov ecx, userCount
-    cmp ecx, 0
-    je input_pass  ; No users yet, skip check
-    
-    mov esi, OFFSET userDatabase
+    cmp eax, 1
+    jne input_email
+    jmp input_password
 
-check_email_exists:
-    push ecx
-    
-    ; Compare email
-    lea edi, [esi + User.email]
-    mov ebx, OFFSET inputEmail
-    
-    push esi
-    mov esi, edi
-    mov edi, ebx
-    call CompareStrings
-    pop esi
-    
-    pop ecx
-    
-    cmp eax, 0
-    je email_exists
-    
-    add esi, SIZEOF User
-    loop check_email_exists
-    jmp input_pass
-    
-email_exists:
+email_existed:
     mov edx, OFFSET errorEmailExists
     call InvalidTextDisplay
     jmp input_email
 
-    ; Password input
-input_pass:
+input_password:
     mov edx, OFFSET promptPassword
     call WriteString
     mov edx, OFFSET inputPassword
     call ReadPasswordWithMask
     call ValidatePassword
     cmp eax, 0
-    je input_pass
+    je input_password
 
-    ; Confirm password input
 input_confirm_pass:
     mov edx, OFFSET confirmPassword
     call WriteString
@@ -754,102 +788,161 @@ input_confirm_pass:
 
     mov edx, OFFSET errorPasswordMismatch
     call InvalidTextDisplay
-    jmp input_pass
+    jmp input_password
 
 password_match:
-    ; Store user in database
-    mov esi, OFFSET userDatabase
-    mov ecx, userCount
-    imul ecx, SIZEOF User
-    add esi, ecx
 
-    mov edi, OFFSET inputName
-    mov ebx, esi  ; Name is at the beginning of the structure
-    call CopyString
-
-    mov edi, OFFSET inputEmail
-    lea ebx, [esi + MAX_NAME_LENGTH]  ; Email comes after name
-    call CopyString
-
-    mov edi, OFFSET inputPassword
-    lea ebx, [esi + MAX_NAME_LENGTH + MAX_EMAIL_LENGTH]  ; Password comes after email
-    call CopyString
-
-    inc userCount
+OTP_verification:    
+    ; Generate OTP first for verification
+    call GenerateOTP
     
-    call SaveUserData
+    call Crlf
+    mov edx, OFFSET otpEmailMsg
+    call WriteString
+    mov eax, otpValue
+    call WriteDec
+    call Crlf
+    call Crlf
     
+    mov edx, OFFSET otpPrompt
+    call WriteString
+    mov edx, OFFSET otpBuffer
+    mov ecx, 10
+    call ReadString
+    
+    mov edx, OFFSET otpBuffer
+    call ParseDecimal
+    
+    ; Compare with generated OTP
+    cmp eax, otpValue
+    jne otp_invalid
+    
+    ; OTP validation successful
+    mov edx, OFFSET otpSuccessMsg
+    call SuccessTextDisplay
+    call Crlf
+    jmp save_file
+
+
+save_file:
+    ; Open file for writing
+    INVOKE CreateFile,
+        ADDR userFileName,
+        GENERIC_WRITE,
+        0,
+        0,
+        OPEN_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL,
+        0
+
+    cmp eax, INVALID_HANDLE_VALUE
+    je register_error
+    mov fileHandle, eax
+
+    ; Move file pointer to end
+    INVOKE SetFilePointer,
+        fileHandle,
+        0,
+        0, 
+        FILE_END
+
+    
+    mov edi, OFFSET fileContent
+    mov ecx, 0
+
+    ; Copy email
+    mov esi, OFFSET inputEmail
+copy_email:
+    mov al, [esi]
+    cmp al, 0
+    je done_email
+    mov [edi], al
+    inc esi
+    inc edi
+    inc ecx
+    jmp copy_email
+
+done_email:
+
+    ; Add comma
+    mov al, ','
+    mov [edi], al
+    inc edi
+    inc ecx
+
+    ; Copy password
+    mov esi, OFFSET inputPassword
+copy_password:
+    mov al, [esi]
+    cmp al, 0
+    je done_password
+    mov [edi], al
+    inc esi
+    inc edi
+    inc ecx
+    jmp copy_password
+
+done_password:
+
+    ; Add comma
+    mov al, ','
+    mov [edi], al
+    inc edi
+    inc ecx
+
+    ; Copy name
+    mov esi, OFFSET inputName
+copy_name:
+    mov al, [esi]
+    cmp al, 0
+    je done_name
+    mov [edi], al
+    inc esi
+    inc edi
+    inc ecx
+    jmp copy_name
+
+done_name:
+
+    ; Add newline
+    mov BYTE PTR [edi], 0Dh
+    inc edi
+    inc ecx
+    mov BYTE PTR [edi], 0Ah
+    inc edi
+    inc ecx
+
+    ; Write into file
+    INVOKE WriteFile,
+        filehandle,
+        ADDR fileContent,
+        ecx,
+        ADDR bytesWritten,
+        0
+
+    ; Close file
+    INVOKE CloseHandle, filehandle
+
     mov edx, OFFSET regsuccessMsg
     call SuccessTextDisplay
     call WaitForEnter
     ret
+  
+otp_invalid:
+    mov edx, OFFSET otpInvalidMsg
+    call InvalidTextDisplay
+    call Crlf
+register_error:
+    mov edx, OFFSET regFailureMsg
+    call WriteString
+    call Crlf
+    call WaitForEnter
+    ret
+
 
 Registration ENDP
 
-SaveUserData PROC
-    ; Create/Open file for writing
-    mov edx, OFFSET userFileName
-    call CreateOutputFile
-    mov fileHandle, eax
-    
-    ; Check if file opened successfully
-    cmp eax, INVALID_HANDLE_VALUE
-    jne file_opened_ok
-    
-    mov edx, OFFSET fileOpenError
-    call InvalidTextDisplay
-    call WaitForEnter
-    ret
-    
-file_opened_ok:
-    ; Write userCount to file
-    mov eax, fileHandle
-    mov edx, OFFSET userCount
-    mov ecx, TYPE userCount
-    call WriteToFile
-    
-    ; Check if write was successful
-    cmp eax, 0
-    je write_error
-    
-    ; Write user database to file
-    mov eax, fileHandle
-    mov edx, OFFSET userDatabase
-    mov ecx, SIZEOF User
-    imul ecx, userCount
-    call WriteToFile
-    
-    ; Check if write was successful
-    cmp eax, 0
-    je write_error
 
-    ; Write purchase types, items, and quantities
-    mov eax, fileHandle
-    mov edx, OFFSET purchaseTypes
-    mov ecx, 40  ; 10 DWORDs (10 * 4 bytes)
-    call WriteToFile
-    
-    mov eax, fileHandle
-    mov edx, OFFSET purchaseItems
-    mov ecx, 40  ; 10 DWORDs
-    call WriteToFile
-    
-    mov eax, fileHandle
-    mov edx, OFFSET purchaseQuantities
-    mov ecx, 40  ; 10 DWORDs
-    call WriteToFile
-    
-    jmp close_file
-
-write_error:
-    mov edx, OFFSET fileWriteError
-    call WriteString
-    
-close_file:
-    mov eax, fileHandle
-    call CloseFile
-    ret
-SaveUserData ENDP
 
 ; Load user data from file
 LoadUserData PROC
@@ -924,130 +1017,123 @@ login_start:
     call WriteString
 
     ; Email input
+input_login_email:
     mov edx, OFFSET promptLoginEmail
     call WriteString
     mov edx, OFFSET inputLoginEmail
     mov ecx, MAX_EMAIL_LENGTH
     call ReadString
+    call ValidateLoginEmail
+    cmp eax, 0
+    je input_login_email
+    call CheckEmailLoginExists
+    cmp eax, 0
+    je input_login_pass
 
+    mov edx, OFFSET emailNotExistMsg
+    call InvalidTextDisplay
+    jmp login_failed
+
+input_login_pass:
     ; Password input
     mov edx, OFFSET promptLoginPass
     call WriteString
     mov edx, OFFSET inputLoginPass
     call ReadPasswordWithMask
 
-    ; Check credentials
-    mov ecx, userCount
-    cmp ecx, 0
-    je login_failed
-    mov esi, OFFSET userDatabase
+    ; Open and read account file
+    INVOKE CreateFile, 
+        ADDR userFileName,          ; filename
+        GENERIC_READ,              ; mode - read only
+        0,                         ; share mode
+        0,                         ; security
+        OPEN_EXISTING,             ; open only if exists
+        FILE_ATTRIBUTE_NORMAL,     ; normal file attribute
+        0                          ; template
 
-check_login:
-    push ecx
+    cmp eax, INVALID_HANDLE_VALUE
+    je login_error_file
+    mov filehandle, eax
 
-    ; Compare email
-    lea edi, [esi + MAX_NAME_LENGTH]  ; Email comes after name
-    mov ebx, OFFSET inputLoginEmail
-    
-check_email_loop:
-    mov al, [edi]
-    mov ah, [ebx]
-    cmp al, ah
-    jne next_user
-    cmp al, 0
-    je email_match
-    inc edi
-    inc ebx
-    jmp check_email_loop
-    
-email_match:
-    ; Compare password
-    lea edi, [esi + MAX_NAME_LENGTH + MAX_EMAIL_LENGTH]  ; Password comes after email
-    mov ebx, OFFSET inputLoginPass
-    
-check_password_loop:
-    mov al, [edi]
-    mov ah, [ebx]
-    cmp al, ah
-    jne next_user
-    cmp al, 0
+    ; Read file contents
+    INVOKE ReadFile,
+        filehandle,             ; file handle
+        ADDR fileBuffer,           ; buffer
+        SIZEOF fileBuffer - 1,     ; number of bytes to read
+        ADDR bytesRead,            ; bytes read
+        0                          ; overlapped
+
+    cmp eax, 0
+    je login_error_read
+
+    mov edi, OFFSET fileBuffer
+    add edi, bytesRead
+    mov BYTE PTR [edi], 0
+
+    ; Close file
+    INVOKE CloseHandle, filehandle
+
+    mov isLoggedIn, 0
+
+    ; Process credentials
+    mov esi, OFFSET fileBuffer
+    call ProcessCredentials
+
+    ; Check login result
+    cmp isLoggedIn, 1
     je login_success
-    inc edi
-    inc ebx
-    jmp check_password_loop
 
-next_user:
-    add esi, SIZEOF User
-    pop ecx
-    dec ecx
-    jnz check_login
-    jmp login_failed
-
+    ; login failed
 login_failed:
+    call Crlf
     mov edx, OFFSET loginFailMsg
-    call WriteString
-    
-    ; Display options after failed login
+    call InvalidTextDisplay
     call Crlf
     mov edx, OFFSET loginOptionsMsg
     call WriteString
     call ReadInt
-    
+
     cmp eax, 1
-    je change_password
-    cmp eax, 2
     je login_start
-    cmp eax, 3
+    cmp eax, 2
     je go_to_registration
+    cmp eax, 3
+    je return_userPage
+
     
     ; If invalid option, default to try login again
     jmp login_start
 
-change_password:
-    call ChangePassword
-    jmp login_start
     
 go_to_registration:
     call Registration
     jmp login_start
 
+
 login_success:
-    pop ecx
-    ; Save the current user index for later use
-    mov eax, userCount
-    sub eax, ecx
-    mov currentUserIndex, eax
-    
-    ; Load current user's purchase history
-    mov esi, OFFSET userDatabase
-    imul eax, SIZEOF User
-    add esi, eax
-    
-    ; Copy purchase count
-    mov eax, [esi + User.purchaseCount]
-    mov purchaseCount, eax
-    
-    ; Copy purchase history
-    mov ecx, eax
-    cmp ecx, 0
-    je skip_history_copy
-    
-    lea edi, [esi + User.purchaseHistory]
-    mov esi, OFFSET purchaseHistory
-    
-copy_history_loop:
-    mov eax, [edi]
-    mov [esi], eax
-    add edi, 4
-    add esi, 4
-    loop copy_history_loop
-    
-skip_history_copy:
-    mov loginSuccess, 1
+    mov loginsuccess, 1
     mov edx, OFFSET loginSuccessMsg
     call SuccessTextDisplay
     call WaitForEnter
     ret
+
+login_error_file:
+    mov edx, OFFSET errorLoginFile
+    call InvalidTextDisplay
+    call crlf
+    call WaitForEnter
+    ret
+
+login_error_read:
+    mov edx, OFFSET errorLoginRead
+    call InvalidTextDisplay
+    call crlf
+    call WaitForEnter
+    ret
+
+return_userPage:
+    ret
+
 Login ENDP
 
 WaitForEnter PROC
@@ -1064,44 +1150,27 @@ change_pass_start:
     mov edx, OFFSET changePassTitle
     call WriteString
     call Crlf
-    
+ 
+input_email:  
     ; Email input for identification
     mov edx, OFFSET promptLoginEmail
     call WriteString
-    mov edx, OFFSET inputLoginEmail
+    mov edx, OFFSET inputEmail
     mov ecx, MAX_EMAIL_LENGTH
     call ReadString
-    
-    ; Find user by email
-    mov ecx, userCount
-    cmp ecx, 0
-    je change_pass_failed
-    mov esi, OFFSET userDatabase
-    
-find_user_loop:
-    ; Compare email
-    lea edi, [esi + MAX_NAME_LENGTH]  ; Email comes after name
-    mov ebx, OFFSET inputLoginEmail
-    
-check_email_loop:
-    mov al, [edi]
-    mov ah, [ebx]
-    cmp al, ah
-    jne next_user_cp
-    cmp al, 0
+  
+    mov edx, OFFSET inputEmail
+    call CheckEmailExists
+    call writeint
+    cmp eax, 0
     je user_found
-    inc edi
-    inc ebx
-    jmp check_email_loop
-    
-next_user_cp:
-    add esi, SIZEOF User
-    loop find_user_loop
+
+    mov edx, OFFSET emailNotExistMsg
+    call InvalidTextDisplay
     jmp change_pass_failed
+
     
 user_found:
-    ; Save the user record pointer for later use
-    push esi    ; Save user record pointer
     
     ; Generate OTP first for verification
     call GenerateOTP
@@ -1138,10 +1207,14 @@ prompt_new_pass:
     call WriteString
     mov edx, OFFSET inputNewPass
     call ReadPasswordWithMask
+
+    mov edx, OFFSET inputEmail
+    cmp eax, 0
+    jmp change_pass_failed
+
     
     ; Check if new password is same as current password in database
-    push esi
-    lea edi, [esi + MAX_NAME_LENGTH + MAX_EMAIL_LENGTH]  ; Current password location in database
+    mov edi, OFFSET passBuffer
     mov ebx, OFFSET inputNewPass
     
 check_password_reuse:
@@ -1156,7 +1229,7 @@ check_password_reuse:
     jmp check_password_reuse
     
 password_reused:
-    pop esi
+
     mov edx, OFFSET passwordReuseError
     call InvalidTextDisplay
     call Crlf  ; Add a newline for better visibility
@@ -1164,10 +1237,9 @@ password_reused:
     jmp prompt_new_pass  ; Try again with a different password
     
 passwords_different:
-    pop esi
     
     ; Copy string from inputNewPass to inputPassword for validation
-    push esi
+
     mov edi, OFFSET inputNewPass
     mov esi, OFFSET inputPassword
     mov ecx, MAX_PASSWORD_LENGTH
@@ -1212,21 +1284,8 @@ confirm_password_loop:
     jmp confirm_password_loop
     
 passwords_match:
-    ; Update password in database
-    pop ebx     ; Get the saved user record pointer
-    lea edi, [ebx + MAX_NAME_LENGTH + MAX_EMAIL_LENGTH]  ; Point to password field
-    mov esi, OFFSET inputNewPass    ; Source is the new password
-    
-update_password_loop:
-    mov al, [esi]
-    mov [edi], al
-    inc esi
-    inc edi
-    cmp al, 0
-    jne update_password_loop
-    
-    ; Save user data after password change
-    call SaveUserData
+    call UpdatePassWordInFile
+
     
     mov edx, OFFSET passChangeSuccess
     call SuccessTextDisplay
@@ -1269,50 +1328,120 @@ GenerateOTP PROC
     ret
 GenerateOTP ENDP
 
-; Renamed to avoid duplicate procedure
-AdminLogin PROC
-login_attempt:
-    mov edx, OFFSET promptUser
-    call WriteString
 
-    mov edx, OFFSET inputUsername
-    mov ecx, 20 
-    call ReadString
+UpdatePasswordInFile PROC
+    mov edx, OFFSET userFileName
+    call OpenInputFile
+    mov fileHandle, eax
 
-    mov edx, OFFSET promptPass
-    call WriteString
+    mov edx, OFFSET fileBuffer
+    mov ecx, SIZEOF fileBuffer
+    call ReadFromFile
+    mov bytesRead, eax
 
-    mov edx, OFFSET inputPassword
-    call ReadString
+    mov eax, fileHandle
+    call CLoseFile
 
-    mov esi, OFFSET username
-    mov edi, OFFSET inputUsername
+    ; Find and modify user's line
+    mov esi, OFFSET fileBuffer
+    mov edi, OFFSET fileBuffer
+
+find_user_line:
+    push esi
+    push edi
+    mov edi, OFFSET emailBuffer
     call CompareStrings
+    pop edi
+    pop esi
     cmp eax, 0
-    jne login_failed
+    je found_user_line
 
-    mov esi, OFFSET password
-    mov edi, OFFSET inputPassword
-    call CompareStrings
-    cmp eax, 0
-    jne login_failed
+copy_line:
+    mov al, [esi]
+    mov [edi], al
+    inc esi
+    inc edi
+    cmp al, 0Dh
+    je line_copied
+    cmp al, 0Dh
+    je line_copied
+    jmp copy_line
 
-    mov edx, OFFSET regsuccessMsg
-    call WriteString
-    
-    mov edx, OFFSET enterMsg
-    call WriteString
-    call ReadChar
-    call Crlf
+line_copied:
+    jmp find_user_line
 
+found_user_line:
+    mov ecx, 0
+copy_email:
+    mov al, [esi]
+    mov [edi], al
+    inc esi
+    inc edi
+    inc ecx
+    cmp al, ','
+    jne copy_email
+
+skip_old_password:
+    mov al, [esi]
+    inc esi
+    cmp al, ','
+    jne skip_old_password
+    mov byte ptr [edi], ','
+    inc edi
+
+    ;insert new password
+    mov esi, OFFSET inputNewPass
+copy_new_password:
+    mov al, [esi]
+    cmp al, 0
+    je password_copied
+    mov [edi], al
+    inc esi
+    inc edi
+    jmp copy_new_password
+
+password_copied:
+    mov byte ptr [edi], ','
+    inc edi
+
+skip_to_eol:
+    mov al, [esi]
+    inc esi
+    cmp al, 0Dh
+    je copy_rest
+    cmp al, 0Ah
+    je copy_rest
+    jmp skip_to_eol
+
+copy_rest:
+    mov al, [esi]
+    mov [edi], al
+    inc esi
+    inc edi
+    cmp al, 0
+    jne copy_rest
+
+    ; Write modified content back to file
+    mov edx, OFFSET userFileName
+    call CreateOutputFile
+    mov fileHandle, eax
+
+    mov edx, OFFSET fileBuffer
+    sub edi, OFFSET fileBuffer
+    mov ecx, edi
+    call WriteToFile
+
+    mov eax, fileHandle
+    call CloseFIle 
     ret
 
-login_failed:
-    mov edx, OFFSET regfailureMsg
-    call WriteString
-    call WaitForEnter
-    jmp login_attempt
-AdminLogin ENDP
+      
+
+UpdatePasswordInFile ENDP
+
+
+
+
 
 Menu PROC
 menu_loop:
@@ -1752,8 +1881,6 @@ last_investment:
     ; Decrement purchase count
     dec purchaseCount
     
-    ; Update user database
-    call UpdateUserDatabase
     
     mov edx, OFFSET riSuccess
     call SuccessTextDisplay
@@ -2151,8 +2278,6 @@ update_loop:
     loop update_loop
     
 skip_update:
-    ; Save user data
-    call SaveUserData
     ret
 UpdateUserDatabase ENDP
 
@@ -2434,7 +2559,6 @@ quantity_ok:
     mov [edi + ecx * 4 - 4], eax
     
 skip_history_update:
-    call SaveUserData
     
     mov edx, OFFSET purchaseConfirm
     call SuccessTextDisplay
@@ -2625,6 +2749,11 @@ sum_loop:
     add eax, calcBrokeFees
     mov fees, eax                   ;Store total fees
 
+    mov edx, OFFSET calcPromptInitialVal
+    call WriteString
+    mov eax, initial_investment
+    call WriteDec
+
 prompt_value1:
     call Crlf
     mov edx, OFFSET calcPromptValue
@@ -2760,16 +2889,30 @@ division_error:
     jmp exit_calc
     
 calc_cagr:
+    ; Auto-fill initial_investment from purchaseHistory
+    mov ecx, purchaseCount
+    cmp ecx, 0
+    je no_purchases_cagr        ; If no purchases, skip calculation
+
+    mov edi, OFFSET purchaseHistory
+    xor eax, eax                ; Clear EAX to store the sum
+
+sum_loop_cagr:
+    add eax, [edi]              ; Add current purchase price to total
+    add edi, 4                  ; Move to next purchase entry
+    loop sum_loop_cagr
+
+    mov initial_investment, eax ; Save total to initial_investment
+
     ;Prompt for initial value
 prompt_ii2:
     call Crlf
     mov edx, OFFSET calcPromptInitialVal
     call WriteString
-    call ValidateDigit
-    call ValidateValueRange
-    cmp eax, 0
-    je prompt_ii2
-    mov initialValue, eax
+    mov eax, initial_investment
+    call WriteDec
+    mov eax, initial_investment
+
     
     ;Prompt for Final Value
 prompt_final1:
@@ -2780,7 +2923,7 @@ prompt_final1:
     call ValidateValueRange
     cmp eax, 0
     je prompt_final1
-    mov ebx, initialValue
+    mov ebx, initial_investment
     cmp eax, ebx
     ja storeFinalVal
 
@@ -2805,7 +2948,7 @@ prompt_year2:
 
     ;Calculation
     fild finalValue
-    fild initialValue
+    fild initial_investment
     fdiv                ; FV / IV
 
     fld1
@@ -2851,7 +2994,7 @@ prompt_year2:
     
     mov edx, OFFSET displayInitVal
     call WriteString
-    mov eax, initialValue
+    mov eax, initial_investment
     call WriteDec
     call Crlf
 
@@ -2889,6 +3032,11 @@ SkipZeroPercent:
     call WriteChar
     call Crlf
 
+    jmp exit_calc
+
+no_purchases_cagr:
+    mov edx, OFFSET noPurchaseMsg
+    call WriteString
     jmp exit_calc
     
 calc_compound:
@@ -3057,12 +3205,10 @@ settings_loop:
     call Crlf
     
     cmp eax, 1
-    je delete_account
-    cmp eax, 2
     je logout_user
-    cmp eax, 3
+    cmp eax, 2
     je view_information
-    cmp eax, 4
+    cmp eax, 3
     je return_to_menu
     
     ; Invalid option
@@ -3071,69 +3217,6 @@ settings_loop:
     call WaitForEnter
     jmp settings_loop
     
-delete_account:
-    ; Confirm deletion with red text
-    mov edx, OFFSET deleteConfirmMsg
-    call InvalidTextDisplay  ; This displays text in red
-    call ReadChar
-    call WriteChar
-    call Crlf
-    
-    cmp al, 'Y'
-    je confirm_delete
-    cmp al, 'y'
-    je confirm_delete
-    
-    ; User canceled deletion
-    jmp settings_loop
-    
-confirm_delete:
-    ; Get the current user index
-    mov esi, currentUserIndex
-    
-    ; Shift all users after this one up by one position
-    mov edi, OFFSET userDatabase
-    imul eax, esi, SIZEOF User
-    add edi, eax  ; Point to current user position
-    
-    ; Source = next user position
-    mov esi, edi
-    add esi, SIZEOF User
-    
-    ; Calculate remaining users to move
-    mov ecx, userCount
-    dec ecx
-    sub ecx, currentUserIndex
-    
-    ; If there are users to move
-    cmp ecx, 0
-    jle last_user_delete
-    
-    ; Calculate bytes to move
-    imul eax, ecx, SIZEOF User
-    
-    ; Move memory (shift users up)
-    push ecx
-    mov ecx, eax
-    rep movsb
-    pop ecx
-    
-last_user_delete:
-    ; Decrement user count
-    dec userCount
-    
-    ; Save updated user database
-    call SaveUserData
-    
-    ; Show success message in green
-    mov edx, OFFSET accountDeletedMsg
-    call SuccessTextDisplay
-    call WaitForEnter
-    
-    ; Return to login page (homepage)
-    mov loginSuccess, 0
-    call UserPage  ; This will bring user back to login/registration page
-    ret
     
 logout_user:
     ; Display logout message
@@ -3154,17 +3237,12 @@ view_information:
     mov edx, OFFSET viewInfoPage
     call WriteString
     
-    ; Get pointer to current user
-    mov esi, OFFSET userDatabase
-    mov eax, currentUserIndex
-    imul eax, SIZEOF User
-    add esi, eax
+
 
     ; Display user's name
     mov edx, OFFSET viewInfoName
     call WriteString
-    mov edx, esi
-    ; Name is at the beginning of the structure
+    mov edx, OFFSET nameBuffer
     call WriteString
     call Crlf
     call Crlf
@@ -3172,14 +3250,14 @@ view_information:
     ; Display user's email
     mov edx, OFFSET viewInfoEmail
     call WriteString
-    lea edx, [esi + MAX_NAME_LENGTH]  ; Email comes after name
+    mov edx, OFFSET emailBuffer
     call WriteString
     call Crlf
     
     ; Display user's password
     mov edx, OFFSET viewInfoPassword
     call WriteString
-    lea edx, [esi + MAX_NAME_LENGTH + MAX_EMAIL_LENGTH]  ; Password comes after email
+    mov edx, OFFSET passBuffer
     call WriteString
     call Crlf
     call Crlf
@@ -3355,7 +3433,7 @@ ValidateRateYearRange PROC
     cmp eax, 1
     jb invalid_range
     cmp eax, 100
-    ja invalid_range
+    jae invalid_range
 
 return:
     ret
@@ -3401,6 +3479,528 @@ invalid:
 ValidateAlphabeticInput ENDP
 
 
+ProcessCredentials PROC
+    
+process_line:
+    ; Check if reached the end of buffer
+    mov al, [esi]
+    cmp al, 0
+    je verify_credentials
+
+    call CleanupTempBuffers
+
+    ; Extract email
+    mov edi, OFFSET emailBuffer
+extract_email:
+    mov al, [esi]
+    cmp al, ','
+    je email_done
+    cmp al, 0
+    je verify_credentials
+    cmp al, 0Dh
+    je next_line
+    cmp al, 0Ah
+    je next_line
+
+    mov [edi], al
+    inc esi
+    inc edi
+    jmp extract_email
+
+email_done:
+    inc esi
+
+    ; Extract password
+    mov edi, OFFSET passBuffer
+extract_password:
+    mov al, [esi]
+    cmp al, ','
+    je password_done
+    cmp al, 0Dh
+    je next_line
+    cmp al, 0Ah
+    je next_line
+    cmp al, 0
+    je verify_credentials
+
+    mov [edi], al
+    inc esi
+    inc edi
+    jmp extract_password
+
+password_done:
+    inc esi
+
+    ; Extract name
+    mov edi, OFFSET nameBuffer
+extract_name:
+    mov al, [esi]
+    cmp al, 0Dh
+    je check_credentials
+    cmp al, 0Ah
+    je check_credentials
+    cmp al, 0
+    je check_credentials
+
+    mov [edi], al
+    inc esi
+    inc edi
+    jmp extract_name
+
+check_credentials:
+    push esi
+    call CompareCredentials
+    cmp eax, 1
+    je credentials_found
+
+    pop esi
+
+next_line:
+    mov al, [esi]
+    cmp al, 0
+    je verify_credentials
+    cmp al, 0Dh
+    je skip_cr
+    cmp al, 0Ah
+    je skip_lf
+    inc esi
+    jmp next_line
+
+skip_cr:
+    inc esi
+    mov al, [esi]
+    cmp al, 0Ah
+    jne process_line
+    inc esi
+    jmp process_line
+
+skip_lf:
+    inc esi
+    jmp process_line
+
+credentials_found:
+    pop esi
+    jmp verify_credentials
+
+verify_credentials:
+    ret
+    
+invalid_login_email:
+    mov edx, OFFSET invalidLoginEmail
+    call InvalidTextDisplay
+    call WaitForEnter
+    ret
+
+invalid_login_pass:
+    mov edx, OFFSET invalidLoginPass
+    call InvalidTextDisplay
+    call WaitForEnter
+    ret
+
+
+ProcessCredentials ENDP
+
+CleanupTempBuffers PROC
+    mov edi, OFFSET emailBuffer
+    mov ecx, MAX_EMAIL_LENGTH
+clear_email:
+    mov BYTE PTR [edi], 0
+    inc edi
+    loop clear_email
+
+    mov edi, OFFSET passBuffer
+    mov ecx, MAX_PASSWORD_LENGTH
+clear_password:
+    mov BYTE PTR [edi], 0
+    inc edi
+    loop clear_password
+
+    mov edi, OFFSET nameBuffer
+    mov ecx, MAX_NAME_LENGTH
+clear_name:
+    mov BYTE PTR [edi], 0
+    inc edi
+    loop clear_name
+    ret
+
+CleanupTempBuffers ENDP
+
+CompareCredentials PROC
+    ; Compare email
+    mov edi, OFFSET inputLoginEmail
+    mov esi, OFFSET emailBuffer
+compare_email:
+    mov al, [esi]
+    mov bl, [edi]
+    cmp al, 0
+    je done_email_check
+    cmp bl, 0
+    je email_no_match
+    cmp al, bl
+    jne email_no_match
+    inc esi
+    inc edi
+    jmp compare_email
+
+done_email_check:
+    cmp BYTE PTR [edi], 0
+    jne email_no_match
+
+    ; Compare password
+    mov edi, OFFSET inputLoginPass
+    mov esi, OFFSET passBuffer
+compare_password:
+    mov al, [esi]
+    mov bl, [edi]
+    cmp al, 0
+    je done_password_check
+    cmp bl, 0
+    jne continue_password
+    jmp password_no_match
+continue_password:
+    cmp al, bl
+    jne password_no_match
+    inc esi
+    inc edi
+    jmp compare_password
+
+done_password_check:
+    cmp BYTE PTR [edi], 0
+    jne password_no_match
+
+    mov isLoggedIn, 1
+
+    ; Copy name to currentUser
+    mov esi, OFFSET nameBuffer
+    mov edi, OFFSET currentUser
+copy_current_user:
+    mov al, [esi]
+    mov [edi], al
+    cmp al, 0
+    je credentials_match_done
+    inc esi
+    inc edi
+    jmp copy_current_user
+
+credentials_match_done:
+    mov eax, 1
+    ret
+
+email_no_match:
+    mov eax, 0
+    ret
+
+password_no_match:
+    mov eax, 0
+    ret
+
+CompareCredentials ENDP
+    
+CheckEmailExists PROC
+    ; Returns: 
+    ;   EAX = 1 if email exists
+    ;   EAX = 0 if email doesn't exist
+    ;   EAX = -1 on file error
+
+    ; Open file
+    INVOKE CreateFile,
+        ADDR userFileName,
+        GENERIC_READ,
+        0,
+        0,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        0
+
+    cmp eax, INVALID_HANDLE_VALUE
+    je file_error
+    mov filehandle, eax
+
+    ; Read file content
+    INVOKE ReadFile,
+        filehandle,
+        ADDR fileBuffer,
+        SIZEOF fileBuffer - 1,
+        ADDR bytesRead,
+        0
+
+    cmp eax, 0
+    je read_error
+
+    ; Null-terminate buffer
+    mov edi, OFFSET fileBuffer
+    add edi, bytesRead
+    mov BYTE PTR [edi], 0
+
+    ; Close file
+    INVOKE CloseHandle, filehandle
+
+    mov esi, OFFSET fileBuffer  ; Point to start of buffer
+
+check_loop:
+    ; Clean email buffer
+    mov edi, OFFSET emailBuffer
+    mov ecx, MAX_EMAIL_LENGTH
+    mov al, 0
+    cld
+    rep stosb
+
+    ; Extract email (first field before comma)
+    mov edi, OFFSET emailBuffer
+extract_email:
+    mov al, [esi]
+    cmp al, ','            
+    je compare_current
+    cmp al, 0              ; EOF
+    je email_not_found
+    cmp al, 0Dh            ; CR
+    je skip_rest_of_line
+    cmp al, 0Ah            ; LF
+    je skip_rest_of_line
+    
+    mov [edi], al          
+    inc esi
+    inc edi
+    jmp extract_email
+
+compare_current:
+    ; Save current position (after comma)
+    push esi
+    
+    ; Compare strings
+    mov esi, OFFSET emailBuffer
+    mov edi, OFFSET inputEmail
+compare_loop:
+    mov al, [esi]
+    mov bl, [edi]
+    cmp al, bl
+    jne compare_fail
+    
+    ; Check if both strings ended
+    cmp al, 0
+    je email_found
+    
+    inc esi
+    inc edi
+    jmp compare_loop
+
+compare_fail:
+    pop esi                ; Restore position after comma
+    
+    ; Skip rest of the line
+skip_rest_of_line:
+    mov al, [esi]
+    cmp al, 0              ; EOF
+    je email_not_found
+    cmp al, 0Dh            ; CR
+    je handle_line_end
+    cmp al, 0Ah            ; LF
+    je handle_line_end
+    inc esi
+    jmp skip_rest_of_line
+
+handle_line_end:
+    ; Skip CR/LF
+    inc esi
+    cmp BYTE PTR [esi-1], 0Dh  ; If it was CR
+    jne check_next_line
+    cmp BYTE PTR [esi], 0Ah    ; Check for LF after CR
+    jne check_next_line
+    inc esi                   ; Skip LF if CR+LF
+    
+check_next_line:
+    jmp check_loop
+
+email_found:
+    add esp, 4              ; Clean stack (remove saved ESI)
+    mov eax, 0             ; Email exists
+    ret
+
+email_not_found:
+    mov eax, 1            ; Email not found
+    ret
+
+file_error:
+read_error:
+    mov eax, -1            ; Error occurred
+    ret
+
+CheckEmailExists ENDP
+
+CheckEmailLoginExists PROC
+    ; Returns: 
+    ;   EAX = 1 if email exists
+    ;   EAX = 0 if email doesn't exist
+    ;   EAX = -1 on file error
+
+    ; Open file
+    INVOKE CreateFile,
+        ADDR userFileName,
+        GENERIC_READ,
+        0,
+        0,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        0
+
+    cmp eax, INVALID_HANDLE_VALUE
+    je file_error
+    mov filehandle, eax
+
+    ; Read file content
+    INVOKE ReadFile,
+        filehandle,
+        ADDR fileBuffer,
+        SIZEOF fileBuffer - 1,
+        ADDR bytesRead,
+        0
+
+    cmp eax, 0
+    je read_error
+
+    ; Null-terminate buffer
+    mov edi, OFFSET fileBuffer
+    add edi, bytesRead
+    mov BYTE PTR [edi], 0
+
+    ; Close file
+    INVOKE CloseHandle, filehandle
+
+    mov esi, OFFSET fileBuffer  ; Point to start of buffer
+
+check_loop:
+    ; Clean email buffer
+    mov edi, OFFSET emailBuffer
+    mov ecx, MAX_EMAIL_LENGTH
+    mov al, 0
+    cld
+    rep stosb
+
+    ; Extract email (first field before comma)
+    mov edi, OFFSET emailBuffer
+extract_email:
+    mov al, [esi]
+    cmp al, ','            
+    je compare_current
+    cmp al, 0              ; EOF
+    je email_not_found
+    cmp al, 0Dh            ; CR
+    je skip_rest_of_line
+    cmp al, 0Ah            ; LF
+    je skip_rest_of_line
+    
+    mov [edi], al          
+    inc esi
+    inc edi
+    jmp extract_email
+
+compare_current:
+    ; Save current position (after comma)
+    push esi
+    
+    ; Compare strings
+    mov esi, OFFSET emailBuffer
+    mov edi, OFFSET inputLoginEmail
+compare_loop:
+    mov al, [esi]
+    mov bl, [edi]
+    cmp al, bl
+    jne compare_fail
+    
+    ; Check if both strings ended
+    cmp al, 0
+    je email_found
+    
+    inc esi
+    inc edi
+    jmp compare_loop
+
+compare_fail:
+    pop esi                ; Restore position after comma
+    
+    ; Skip rest of the line
+skip_rest_of_line:
+    mov al, [esi]
+    cmp al, 0              ; EOF
+    je email_not_found
+    cmp al, 0Dh            ; CR
+    je handle_line_end
+    cmp al, 0Ah            ; LF
+    je handle_line_end
+    inc esi
+    jmp skip_rest_of_line
+
+handle_line_end:
+    ; Skip CR/LF
+    inc esi
+    cmp BYTE PTR [esi-1], 0Dh  ; If it was CR
+    jne check_next_line
+    cmp BYTE PTR [esi], 0Ah    ; Check for LF after CR
+    jne check_next_line
+    inc esi                   ; Skip LF if CR+LF
+    
+check_next_line:
+    jmp check_loop
+
+email_found:
+    add esp, 4              ; Clean stack (remove saved ESI)
+    mov eax, 0             ; Email exists
+    ret
+
+email_not_found:
+    mov eax, 1            ; Email not found
+    ret
+
+file_error:
+read_error:
+    mov eax, -1            ; Error occurred
+    ret
+
+CheckEmailLoginExists ENDP
+
+
+
+CompareEmail PROC
+    push esi
+    push edi
+
+    mov esi, OFFSET fileBuffer
+    mov edi, OFFSET inputLoginEmail
+
+compare_loop:
+    mov al, [esi]
+    mov bl, [edi]
+    cmp al, ','
+    je check_email_end
+    cmp al, 0
+    je check_email_end
+    cmp al, bl
+    jne no_match
+
+    inc esi
+    inc edi
+    jmp compare_loop
+
+check_email_end:
+    cmp byte ptr [edi], 0
+    jne no_match
+
+    pop edi
+    pop esi
+    mov eax, 1
+    ret
+
+no_match:
+	pop edi
+	pop esi
+	mov eax, 0
+	ret
+
+CompareEmail ENDP
+
+
+
+
 main PROC
     call InitializeInvestmentData
     call LoadUserData
@@ -3408,7 +4008,6 @@ main PROC
     call UserPage
     call Menu
     
-    call SaveUserData
     exit
 main ENDP
 END main
