@@ -236,14 +236,14 @@ INCLUDE IRVINE32.INC
                BYTE "Coca-Cola (KO)                 ", 0
                BYTE "Berkshire (BRK)                ", 0
 
-    bondNames BYTE "U.S. Treasury Bond              ", 0
-              BYTE "Municipal Bond                  ", 0
-              BYTE "Corporate Bond                  ", 0
-              BYTE "High-Yield Bond                 ", 0
-              BYTE "Government Savings Bond         ", 0
-              BYTE "Inflation-Protected Bond        ", 0
-              BYTE "Green Bond                      ", 0
-              BYTE "Convertible Bond                ", 0
+    bondNames BYTE "U.S. Treasury Bond             ", 0
+              BYTE "Municipal Bond                 ", 0
+              BYTE "Corporate Bond                 ", 0
+              BYTE "High-Yield Bond                ", 0
+              BYTE "Government Savings Bond        ", 0
+              BYTE "Inflation-Protected Bond       ", 0
+              BYTE "Green Bond                     ", 0
+              BYTE "Convertible Bond               ", 0
 
     indexNames BYTE "S&P 500                        ", 0
                BYTE "Total Stock Market             ", 0
@@ -314,7 +314,8 @@ INCLUDE IRVINE32.INC
     tableSep3 BYTE " => RM", 0
     tableEnd BYTE "    ", 0Dh, 0Ah, 0
     tableFooter BYTE "||===========================================================||", 0Dh, 0Ah, 0
-    
+    totalPurchaseMsg BYTE "Total Purchase = RM", 0
+    totalPurchase DWORD 0
 
     tempFloat REAL8 0.0
     resultValue REAL8 0.0
@@ -353,6 +354,7 @@ INCLUDE IRVINE32.INC
     displayCount DWORD ?
     displayToActualMap DWORD 10 DUP(0)  ; Maps display index to actual index
     unitPrice DWORD ?
+
 
     quantity DWORD ?  
     totalPrice DWORD ?
@@ -1635,7 +1637,8 @@ viewInvestment:
     mov ecx, purchaseCount
     mov esi, 0
     mov displayCount, 0  ; Reset counter for displayed investments
-    
+    mov totalPurchase, 0
+
 display_history:
     ; Check if we should display this investment based on filter
     cmp viewOption, 4
@@ -1688,6 +1691,8 @@ display_investment:
     mov eax, purchaseHistory[esi*4]
     call WriteDec
     
+    add totalPurchase, eax
+
     mov edx, OFFSET tableEnd
     call WriteString
     
@@ -1699,10 +1704,25 @@ skip_display:
     ; Check if any investments were displayed
     cmp displayCount, 0
     je no_matching_investments
-    
+
     ; Display table footer
     mov edx, OFFSET tableFooter
     call WriteString
+     
+    ; Display total purchase for the filter
+    
+    mov edx, OFFSET tablerow
+    call WriteString
+    mov edx, OFFSET totalPurchaseMsg
+    call WriteString
+    mov eax, totalPurchase
+    call WriteDec
+    call Crlf
+
+    ; Display table footer
+    mov edx, OFFSET tableFooter
+    call WriteString
+
     
     ; Prompt for investment to remove
     call Crlf
@@ -1805,9 +1825,7 @@ got_price:
     mov eax, unitPrice
     mul purchaseQuantities[esi*4]
     mov purchaseHistory[esi*4], eax
-    
-    ; Update user database
-    call UpdateUserDatabase
+   
     
     mov edx, OFFSET riSuccess
     call SuccessTextDisplay
@@ -2251,35 +2269,7 @@ get_default_name:
 GetInvestmentName ENDP
 
 ; Helper to update the user database with current purchase information
-UpdateUserDatabase PROC
-    ; Update user's purchase history
-    mov esi, OFFSET userDatabase
-    mov eax, currentUserIndex
-    imul eax, SIZEOF User
-    add esi, eax
-    
-    ; Update purchase count
-    mov eax, purchaseCount
-    mov [esi + User.purchaseCount], eax
-    
-    ; Copy updated purchase history to user record
-    mov ecx, eax
-    cmp ecx, 0
-    je skip_update
-    
-    mov edi, OFFSET purchaseHistory
-    lea esi, [esi + User.purchaseHistory]
-    
-update_loop:
-    mov eax, [edi]
-    mov [esi], eax
-    add edi, 4
-    add esi, 4
-    loop update_loop
-    
-skip_update:
-    ret
-UpdateUserDatabase ENDP
+
 
 AddInvestment PROC 
     call Clrscr
