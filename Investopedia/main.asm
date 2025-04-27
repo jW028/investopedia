@@ -3397,14 +3397,11 @@ conversionDone:
 invalid:
     mov edx, OFFSET invalidDigitMsg
     call InvalidTextDisplay
-    mov eax, 0
     ret
 
 ValidateDigit ENDP
 
 ValidateValueRange PROC
-    cmp eax, 0
-    je return
     cmp eax, 100
     jb invalid_range
     cmp eax, 100000000
