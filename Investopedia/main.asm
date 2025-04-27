@@ -346,7 +346,8 @@ INCLUDE IRVINE32.INC
                               "2. Bonds", 0Dh, 0Ah,
                               "3. Index Funds", 0Dh, 0Ah,
                               "4. All Investments", 0Dh, 0Ah,
-                              "Enter your choice (1-4): ", 0
+                              "5. Return back", 0Dh, 0Ah,
+                              "Enter your choice (1-5): ", 0
     riPromptChoice BYTE "Enter investment number to sell (9999 to return): ", 0
     invalidNumberMsg BYTE "Invalid investment number. Try again.", 0Dh, 0Ah, 0
     noMatchingInvestments BYTE "No matching investments found.", 0Dh, 0Ah, 0
@@ -1620,12 +1621,15 @@ viewInvestment:
     call WriteString
     call ReadInt
     
-    ; Check if valid option (1-4)
+    ; Check if valid option (1-5)
     cmp eax, 1
     jl invalid_view_option
-    cmp eax, 4
+    cmp eax, 5
     jg invalid_view_option
-    
+    cmp eax, 5
+    je return_back
+
+
     ; Store view option (default to 4 - show all)
     mov viewOption, eax
     
