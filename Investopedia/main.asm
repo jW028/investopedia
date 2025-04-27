@@ -460,7 +460,7 @@ INCLUDE IRVINE32.INC
     invalidLoginPass BYTE "Invalid login pass", 0Dh, 0Ah , 0
     tempFileContent BYTE 120 DUP(0)
 
-    emailNotExistMsg BYTE "Email does not registered." , 0Dh,0Ah, 0
+    emailNotExistMsg BYTE "Email is not registered." , 0Dh,0Ah, 0
 
 
 .code
@@ -937,7 +937,7 @@ otp_invalid:
     call Crlf
 register_error:
     mov edx, OFFSET regFailureMsg
-    call WriteString
+    call InvalidTextDisplay
     call Crlf
     call WaitForEnter
     ret
@@ -1838,13 +1838,13 @@ got_price:
     
 invalid_view_option:
     mov edx, OFFSET invalidMsg
-    call WriteString
+    call InvalidTextDisplay
     call WaitForEnter
     jmp viewInvestment
     
 no_matching_investments:
     mov edx, OFFSET noMatchingInvestments
-    call WriteString
+    call InvalidTextDisplay
     call WaitForEnter
     ret
     
@@ -3034,7 +3034,8 @@ no_purchases_cagr:
     jmp exit_calc
     
 calc_compound:
-    
+    finit
+
     ; Input Principal
 prompt_pv:
     call Crlf
@@ -3078,6 +3079,8 @@ prompt_year3:
     cmp eax, 0
     je prompt_year3
     mov years, eax
+
+    finit
 
     ; Compound Interest Calculation = P * (1 + r/n)^(n * t)
 
