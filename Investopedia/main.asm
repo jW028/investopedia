@@ -3419,8 +3419,6 @@ invalid_range:
 ValidateValueRange ENDP
 
 ValidateRateYearRange PROC
-    cmp eax, 0
-    je return
     cmp eax, 1
     jb invalid_range
     cmp eax, 100
