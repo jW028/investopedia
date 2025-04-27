@@ -3397,6 +3397,7 @@ conversionDone:
 invalid:
     mov edx, OFFSET invalidDigitMsg
     call InvalidTextDisplay
+    mov eax, 0
     ret
 
 ValidateDigit ENDP
